@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.19.0
 
 ARG     VERSION
 
@@ -8,10 +8,10 @@ ARG     VERSION
 ARG     CACHE_BUSTER=default
 
 LABEL org.opencontainers.image.title="Valksor Postgres ${VERSION}" \
-      org.opencontainers.image.description="Optimized Postgres ${VERSION} image" \
-      org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-      org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.description="Optimized Postgres ${VERSION} image" \
+    org.opencontainers.image.version="1.0.0" \
+    org.opencontainers.image.source="https://github.com/valksor/docker-images" \
+    org.opencontainers.image.licenses="MIT"
 
 SHELL   ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -57,7 +57,6 @@ RUN     \
             -exec chmod -s {} \; \
 &&      apt-get autoremove -y --purge \
 &&      rm -rf \
-            /home/vairogs/*.deb \
             /*.deb \
             /var/cache/apt/* \
             /var/lib/apt/lists/* \

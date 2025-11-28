@@ -1,26 +1,20 @@
 name: Build Docker Images
-run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.target || github.event.inputs.start_at || 'n/a' }}]
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}]
 
 on:
     workflow_dispatch:
         inputs:
             mode:
-                default: "chain"
+                default: "single"
                 description: "single = one image; chain = run ordered pipeline starting at start_at"
                 options: [ "single", "chain" ]
                 required: true
                 type: choice
-            target:
-                default: ""
-                description: "Image name when mode=single (e.g., bun, nginx, php-fpm, ... or 'all' to build entire pipeline)"
-                options: [ "", "all", "debian", "postgres" ]
-                required: false
-                type: choice
-            start_at:
+            build_target:
                 default: "debian"
-                description: "When mode=chain, where to start the ordered pipeline (e.g., debian, php-fpm ...). Use 'debian' for full run."
-                options: [ "debian", "postgres" ]
-                required: false
+                description: "Image name (debian, postgres, nginx). Context-aware based on mode."
+                options: [ "debian", "postgres", "nginx" ]
+                required: true
                 type: choice
             no_cache:
                 default: "false"
@@ -64,28 +58,23 @@ jobs:
                 shell: bash
                 run: |
                     set -euo pipefail
-                    ORDER=(debian postgres)
+                    ORDER=(debian postgres nginx)
 
                     MODE="${{ github.event.inputs.mode }}"
-                    TARGET="${{ github.event.inputs.target }}"
-                    START="${{ github.event.inputs.start_at }}"
+                    BUILD_TARGET="${{ github.event.inputs.build_target }}"
 
                     RUN_LIST=()
 
                     if [[ "$MODE" == "single" ]]; then
-                        if [[ -z "$TARGET" || "$TARGET" == "all" ]]; then
-                            RUN_LIST=("${ORDER[@]}")
-                        else
-                            RUN_LIST=("$TARGET")
-                        fi
+                        # single mode: build exactly one specific image
+                        RUN_LIST=("$BUILD_TARGET")
                     else
-                        # mode = chain
-                        if [[ -z "$START" ]]; then
-                            START="debian"
-                        fi
+                        # chain mode: build from target to end of pipeline
+                        local start_target="$BUILD_TARGET"
+
                         RUN=false
                         for s in "${ORDER[@]}"; do
-                            if [[ "$s" == "$START" ]]; then RUN=true; fi
+                            if [[ "$s" == "$start_target" ]]; then RUN=true; fi
                             if $RUN; then RUN_LIST+=("$s"); fi
                         done
                     fi
@@ -94,8 +83,7 @@ jobs:
                     echo "run_list=$PADDED" >> "$GITHUB_OUTPUT"
 
                     echo "MODE=$MODE"
-                    echo "TARGET=$TARGET"
-                    echo "START_AT=$START"
+                    echo "BUILD_TARGET=$BUILD_TARGET"
                     echo "RUN_LIST=${RUN_LIST[*]}"
 
             # -------------------------
@@ -121,6 +109,19 @@ jobs:
                     dockerfile: postgres/Dockerfile
                     image: ${{ env.OWNER }}/postgres
                     no_cache: ${{ github.event.inputs.no_cache }}
+
+            -   name: build nginx
+                if: contains(steps.plan.outputs.run_list, ' nginx ')
+                uses: ./.github/actions/build-simple
+                with:
+                    dockerfile: nginx/Dockerfile
+                    tags: |
+                        ${{ env.OWNER }}/nginx:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            # -------------------------
+            # Stage 2: Dependants
+            # -------------------------
 
     cleanup:
         needs: build

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.19.0
 FROM ghcr.io/valksor/minideb:sid
 
 ARG CACHE_BUSTER=default
@@ -13,10 +13,10 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Labels
 LABEL org.opencontainers.image.title="Valksor Debian Base" \
-      org.opencontainers.image.description="Optimized Debian base image" \
-      org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-      org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.description="Optimized Debian base image" \
+    org.opencontainers.image.version="1.0.0" \
+    org.opencontainers.image.source="https://github.com/valksor/docker-images" \
+    org.opencontainers.image.licenses="MIT"
 
 # Configuration files
 COPY global/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
