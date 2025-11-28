@@ -1,0 +1,125 @@
+name: Build Docker Images
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.target || github.event.inputs.start_at || 'n/a' }}]
+
+on:
+    workflow_dispatch:
+        inputs:
+            mode:
+                description: "single = one image; chain = run ordered pipeline starting at start_at"
+                required: true
+                default: "chain"
+                type: choice
+                options: [ "single", "chain" ]
+            target:
+                description: "Image name when mode=single (e.g., bun, nginx, php-fpm, ... or 'all' to build entire pipeline)"
+                required: false
+                default: ""
+                options: [ "", "all", "debian" ]
+            start_at:
+                description: "When mode=chain, where to start the ordered pipeline (e.g., debian, php-fpm ...). Use 'scratch' for full run."
+                required: false
+                default: "debian"
+                options: [ "debian" ]
+            no_cache:
+                description: "Build with --no-cache"
+                required: false
+                default: "false"
+                options: [ "true", "false" ]
+
+permissions:
+    contents: read
+    packages: write
+
+env:
+    OWNER: ghcr.io/valksor
+    PHP_OWNER: ghcr.io/valksor/php
+
+jobs:
+    build:
+        runs-on: self-arm
+        steps:
+
+            -   name: checkout
+                uses: actions/checkout@v6
+
+            -   name: Login GHCR
+                uses: docker/login-action@v3
+                with:
+                    registry: ghcr.io
+                    username: ${{ github.repository_owner }}
+                    password: ${{ secrets.GITHUB_TOKEN }}
+
+            -   name: Login DockerHub
+                uses: docker/login-action@v3
+                with:
+                    registry: docker.io
+                    username: ${{ secrets.DH_USERNAME }}
+                    password: ${{ secrets.DH_TOKEN }}
+
+            -   name: Plan run list
+                id: plan
+                shell: bash
+                run: |
+                    set -euo pipefail
+                    ORDER=(debian)
+
+                    MODE="${{ github.event.inputs.mode }}"
+                    TARGET="${{ github.event.inputs.target }}"
+                    START="${{ github.event.inputs.start_at }}"
+
+                    RUN_LIST=()
+
+                    if [[ "$MODE" == "single" ]]; then
+                        if [[ -z "$TARGET" || "$TARGET" == "all" ]]; then
+                            RUN_LIST=("${ORDER[@]}")
+                        else
+                            RUN_LIST=("$TARGET")
+                        fi
+                    else
+                        # mode = chain
+                        if [[ -z "$START" ]]; then
+                            START="scratch"
+                        fi
+                        RUN=false
+                        for s in "${ORDER[@]}"; do
+                            if [[ "$s" == "$START" ]]; then RUN=true; fi
+                            if $RUN; then RUN_LIST+=("$s"); fi
+                        done
+                    fi
+
+                    PADDED=" ${RUN_LIST[*]} "
+                    echo "run_list=$PADDED" >> "$GITHUB_OUTPUT"
+
+                    echo "MODE=$MODE"
+                    echo "TARGET=$TARGET"
+                    echo "START_AT=$START"
+                    echo "RUN_LIST=${RUN_LIST[*]}"
+
+            # -------------------------
+            # Stage 1: Independent
+            # -------------------------
+
+            -   name: build debian
+                if: contains(steps.plan.outputs.run_list, ' debian ')
+                uses: ./.github/actions/build-simple
+                with:
+                    dockerfile: debian/Dockerfile
+                    tags: |
+                        ${{ env.OWNER }}/debian:latest
+                    build-args: |
+                        CACHE_BUSTER=${{ github.run_id }}
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+    cleanup:
+        needs: build
+        runs-on: self-arm
+        if: always()
+        steps:
+            -   name: cleanup
+                shell: bash
+                run: |
+                    ls -la ./
+                    rm -rf ./* || true
+                    rm -rf ./.??* || true
+                    ls -la ./
+                    docker builder prune -af

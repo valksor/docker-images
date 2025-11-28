@@ -1,0 +1,49 @@
+name: "Build PHP-FPM"
+description: "Clone php-src and extensions then build"
+inputs:
+    dockerfile:
+        description: "Path to Dockerfile"
+        required: true
+    tags:
+        description: "Tags to apply (one per line)"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   uses: actions/checkout@v6
+
+        -   name: Clone repos
+            shell: bash
+            run: |
+                set -euo pipefail
+                mkdir -p php
+                cd php
+                clone() { git clone --single-branch "$1" "$2"; cd "$2"; git submodule update --init --force; cd ..; }
+                clone https://github.com/fork-php/php-src.git source
+                clone https://github.com/fork-php/apcu.git apcu
+                clone https://github.com/fork-php/ext-ds.git ext-ds
+                clone https://github.com/fork-php/igbinary.git igbinary
+                clone https://github.com/fork-php/imagick.git imagick
+                clone https://github.com/fork-php/mediawiki-php-excimer.git mediawiki-php-excimer
+                clone https://github.com/fork-php/msgpack-php.git msgpack-php
+                clone https://github.com/fork-php/pecl-ev.git pecl-ev
+                clone https://github.com/fork-php/pecl-event.git pecl-event
+                clone https://github.com/fork-php/pecl-file_formats-lzf.git pecl-file_formats-lzf
+                clone https://github.com/fork-php/pecl-networking-uuid.git pecl-networking-uuid
+                clone https://github.com/fork-php/php-ext-lz4.git php-ext-lz4
+                clone https://github.com/fork-php/php-ext-zstd.git php-ext-zstd
+                clone https://github.com/fork-php/php-inotify.git php-inotify
+                clone https://github.com/fork-php/php-spx.git php-spx
+                clone https://github.com/fork-php/php_zip.git php_zip
+                clone https://github.com/fork-php/phpredis.git phpredis
+                clone https://github.com/fork-php/simdjson_php.git simdjson_php
+
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile }}
+                tags: ${{ inputs.tags }}
+                no_cache: ${{ inputs.no_cache }}

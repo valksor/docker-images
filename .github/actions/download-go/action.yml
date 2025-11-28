@@ -1,0 +1,39 @@
+name: 'Download Go'
+description: 'Download Go version (latest or unstable)'
+inputs:
+    version:
+        description: 'Go version to download (latest or unstable)'
+        required: true
+    arch:
+        description: 'Architecture (amd64 or arm64)'
+        required: true
+outputs:
+    go_version:
+        description: 'Downloaded Go version'
+        value: ${{ steps.download.outputs.GO_VERSION }}
+runs:
+    using: 'composite'
+    steps:
+        -   id: download
+            shell: bash
+            run: |
+                set -eux
+                if [ "${{ inputs.version }}" = "latest" ]; then
+                    set +x
+                    JSON=$(curl -s 'https://go.dev/dl/?mode=json')
+                    GO_VERSION=$(echo "$JSON" | grep '"version"' | head -1 | cut -d'"' -f4 | sed 's/^go//')
+                    FILENAME=$(echo "$JSON" | grep "\"filename\".*linux-${{ inputs.arch }}.*tar.gz" | head -1 | cut -d'"' -f4)
+                    set -x
+                else
+                    set +x
+                    JSON=$(curl -s 'https://go.dev/dl/?mode=json&include=all')
+                    GO_VERSION=$(echo "$JSON" | grep -A10 '"stable": false' | grep '"version"' | head -1 | cut -d'"' -f4 | sed 's/^go//')
+                    FILENAME=$(echo "$JSON" | grep "\"filename\".*linux-${{ inputs.arch }}.*tar.gz" | grep -E "(beta|rc)" | head -1 | cut -d'"' -f4)
+                    set -x
+                fi
+                echo "GO_VERSION=$GO_VERSION" >> $GITHUB_OUTPUT
+
+                URL="https://go.dev/dl/${FILENAME}"
+
+                mkdir -p go-root-${{ inputs.version }}
+                curl -sSL "$URL" | tar -xz -C go-root-${{ inputs.version }}

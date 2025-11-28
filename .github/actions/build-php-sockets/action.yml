@@ -1,0 +1,32 @@
+name: "Build PHP-FPM sockets"
+description: "Build socket and testing-socket images"
+inputs:
+    dockerfile1:
+        description: "First Dockerfile"
+        required: true
+    tags1:
+        description: "First image tags"
+        required: true
+    dockerfile2:
+        description: "Second Dockerfile"
+        required: true
+    tags2:
+        description: "Second image tags"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile1 }}
+                tags: ${{ inputs.tags1 }}
+                no_cache: ${{ inputs.no_cache }}
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile2 }}
+                tags: ${{ inputs.tags2 }}
+                no_cache: ${{ inputs.no_cache }}

@@ -1,0 +1,35 @@
+name: "Build Postgres images"
+description: "Build and push multiple Postgres versions"
+inputs:
+    versions:
+        description: "Space-separated versions (e.g., '13 14 15 16 17')"
+        required: true
+    dockerfile:
+        description: "Dockerfile path"
+        required: true
+    image:
+        description: "Image name (e.g., ghcr.io/valksor/postgres)"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   uses: actions/checkout@v6
+
+        -   name: Setup Buildx
+            uses: docker/setup-buildx-action@v3
+            with:
+                driver-opts: image=moby/buildkit:master-rootless
+
+        -   name: Build versions
+            shell: bash
+            run: |
+                set -euo pipefail
+                for v in ${{ inputs.versions }}; do
+                    echo "::group::Building ${v}"
+                    docker buildx build --file "${{ inputs.dockerfile }}" --push --provenance=true --sbom=true $([[ "${{ inputs.no_cache }}" == "true" ]] && echo "--no-cache") --build-arg VERSION="${v}" --build-arg CACHE_BUSTER="${{ github.run_id }}" --tag "${{ inputs.image }}:${v}"             .
+                    echo "::endgroup::"
+                done

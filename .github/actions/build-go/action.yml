@@ -1,0 +1,34 @@
+name: "Build Go image"
+description: "Download Go (latest|unstable) then build"
+inputs:
+    version:
+        description: "latest | unstable"
+        required: true
+    dockerfile:
+        description: "Path to Dockerfile"
+        required: true
+    tags:
+        description: "Tags to apply (one per line)"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   id: download
+            uses: ./.github/actions/download-go
+            with:
+                version: ${{ inputs.version }}
+                arch: arm64
+
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile }}
+                tags: ${{ inputs.tags }}
+                build-args: |
+                    GO_VERSION=${{ steps.download.outputs.go_version }}
+                    GO_ROOT=go-root-${{ inputs.version }}
+                    CACHE_BUSTER=${{ github.run_id }}
+                no_cache: ${{ inputs.no_cache }}

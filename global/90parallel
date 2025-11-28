@@ -1,4 +1,5 @@
 APT::Acquire::Retries "3";
+APT::Acquire::http::Dl-Limit "0";
 Acquire::Queue-Mode "access";
 Acquire::http::Pipeline-Depth "25";
-APT::Acquire::http::Dl-Limit "0";
+Acquire::Retries "3";

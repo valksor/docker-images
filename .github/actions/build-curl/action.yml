@@ -1,0 +1,35 @@
+name: "Build Curl image"
+description: "Clone curl + deps, then build"
+inputs:
+    dockerfile:
+        description: "Path to Dockerfile"
+        required: true
+    tags:
+        description: "Tags to apply (one per line)"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   uses: actions/checkout@v6
+
+        -   name: Prepare source
+            shell: bash
+            run: |
+                set -euo pipefail
+                mkdir -p curl
+                cd curl
+                clone() { git clone --single-branch "$1" "$2"; cd "$2"; git submodule update --init --force; cd ..; }
+                clone https://github.com/curl/curl.git source
+                clone https://github.com/ngtcp2/nghttp3.git nghttp3
+                clone https://github.com/ngtcp2/ngtcp2.git ngtcp2
+                clone https://github.com/960018/wolfssl.git wolfssl
+
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile }}
+                tags: ${{ inputs.tags }}
+                no_cache: ${{ inputs.no_cache }}

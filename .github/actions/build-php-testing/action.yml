@@ -1,0 +1,33 @@
+name: "Build PHP-FPM testing"
+description: "Clone php-src, pcov, xdebug then build"
+inputs:
+    dockerfile:
+        description: "Path to Dockerfile"
+        required: true
+    tags:
+        description: "Tags to apply (one per line)"
+        required: true
+    no_cache:
+        description: "Use --no-cache"
+        required: false
+        default: "false"
+runs:
+    using: "composite"
+    steps:
+        -   uses: actions/checkout@v6
+
+        -   name: Clone repos
+            shell: bash
+            run: |
+                set -euo pipefail
+                mkdir -p php
+                cd php
+                git clone --single-branch https://github.com/fork-php/php-src.git source
+                git clone --single-branch https://github.com/fork-php/pcov.git pcov
+                git clone --single-branch https://github.com/fork-php/xdebug.git xdebug
+
+        -   uses: ./.github/actions/build-simple
+            with:
+                dockerfile: ${{ inputs.dockerfile }}
+                tags: ${{ inputs.tags }}
+                no_cache: ${{ inputs.no_cache }}
