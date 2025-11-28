@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -eux
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres <<-EOSQL
+	CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+	GRANT USAGE ON SCHEMA public TO PUBLIC;
+	GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
+
+	CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
+	GRANT EXECUTE ON FUNCTION public.unaccent(text) TO PUBLIC;
+
+	ALTER DATABASE template1 SET search_path TO public, "$POSTGRES_USER", pg_catalog;
+	\c template1
+	CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+	GRANT USAGE ON SCHEMA public TO PUBLIC;
+	GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
+	CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
+	GRANT EXECUTE ON FUNCTION public.unaccent(text) TO PUBLIC;
+	\c postgres
+EOSQL

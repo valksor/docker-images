@@ -5,26 +5,29 @@ on:
     workflow_dispatch:
         inputs:
             mode:
-                description: "single = one image; chain = run ordered pipeline starting at start_at"
-                required: true
                 default: "chain"
-                type: choice
+                description: "single = one image; chain = run ordered pipeline starting at start_at"
                 options: [ "single", "chain" ]
+                required: true
+                type: choice
             target:
-                description: "Image name when mode=single (e.g., bun, nginx, php-fpm, ... or 'all' to build entire pipeline)"
-                required: false
                 default: ""
-                options: [ "", "all", "debian" ]
+                description: "Image name when mode=single (e.g., bun, nginx, php-fpm, ... or 'all' to build entire pipeline)"
+                options: [ "", "all", "debian", "postgres" ]
+                required: false
+                type: choice
             start_at:
-                description: "When mode=chain, where to start the ordered pipeline (e.g., debian, php-fpm ...). Use 'scratch' for full run."
-                required: false
                 default: "debian"
-                options: [ "debian" ]
-            no_cache:
-                description: "Build with --no-cache"
+                description: "When mode=chain, where to start the ordered pipeline (e.g., debian, php-fpm ...). Use 'debian' for full run."
+                options: [ "debian", "postgres" ]
                 required: false
+                type: choice
+            no_cache:
                 default: "false"
+                description: "Build with --no-cache"
                 options: [ "true", "false" ]
+                required: false
+                type: choice
 
 permissions:
     contents: read
@@ -61,7 +64,7 @@ jobs:
                 shell: bash
                 run: |
                     set -euo pipefail
-                    ORDER=(debian)
+                    ORDER=(debian postgres)
 
                     MODE="${{ github.event.inputs.mode }}"
                     TARGET="${{ github.event.inputs.target }}"
@@ -78,7 +81,7 @@ jobs:
                     else
                         # mode = chain
                         if [[ -z "$START" ]]; then
-                            START="scratch"
+                            START="debian"
                         fi
                         RUN=false
                         for s in "${ORDER[@]}"; do
@@ -108,6 +111,15 @@ jobs:
                         ${{ env.OWNER }}/debian:latest
                     build-args: |
                         CACHE_BUSTER=${{ github.run_id }}
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            -   name: build postgres (17..18)
+                if: contains(steps.plan.outputs.run_list, ' postgres ')
+                uses: ./.github/actions/build-postgres
+                with:
+                    versions: "17 18"
+                    dockerfile: postgres/Dockerfile
+                    image: ${{ env.OWNER }}/postgres
                     no_cache: ${{ github.event.inputs.no_cache }}
 
     cleanup:
