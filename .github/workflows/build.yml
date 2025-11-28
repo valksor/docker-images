@@ -13,7 +13,7 @@ on:
             build_target:
                 default: "debian"
                 description: "Image name (debian, postgres, nginx). Context-aware based on mode."
-                options: [ "debian", "postgres", "nginx" ]
+                options: [ "debian", "postgres", "nginx", "curl" ]
                 required: true
                 type: choice
             no_cache:
@@ -58,7 +58,7 @@ jobs:
                 shell: bash
                 run: |
                     set -euo pipefail
-                    ORDER=(debian postgres nginx)
+                    ORDER=(debian postgres nginx curl)
 
                     MODE="${{ github.event.inputs.mode }}"
                     BUILD_TARGET="${{ github.event.inputs.build_target }}"
@@ -122,6 +122,19 @@ jobs:
             # -------------------------
             # Stage 2: Dependants
             # -------------------------
+
+            # -------------------------
+            # Stage 3: Curl
+            # -------------------------
+
+            -   name: build curl
+                if: contains(steps.plan.outputs.run_list, ' curl ')
+                uses: ./.github/actions/build-curl
+                with:
+                    dockerfile: curl/Dockerfile
+                    tags: |
+                        ${{ env.OWNER }}/curl:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
 
     cleanup:
         needs: build

@@ -26,7 +26,8 @@ runs:
                 clone https://github.com/curl/curl.git source
                 clone https://github.com/ngtcp2/nghttp3.git nghttp3
                 clone https://github.com/ngtcp2/ngtcp2.git ngtcp2
-                clone https://github.com/960018/wolfssl.git wolfssl
+                clone https://github.com/wolfSSL/wolfssl.git wolfssl
+                docker pull ghcr.io/valksor/debian:latest
 
         -   uses: ./.github/actions/build-simple
             with:

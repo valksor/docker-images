@@ -86,6 +86,8 @@ RUN     \
             /usr/share/i18n \
             /usr/local/share/man \
             /usr/lib/python3.*/__pycache__ \
+            /usr/lib/python3.*/__phello__ \
+            /usr/lib/python3.*/__hello__.py \
             /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh \
             /etc/nginx/nginx.conf \
 &&      mkdir -p /var/log/nginx \
