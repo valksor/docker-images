@@ -1,0 +1,108 @@
+{
+    "apcu": {
+        "source": "/tmp/extensions/apcu/",
+        "enable": true,
+        "configure": "--enable-apcu --enable-apcu-clear-signal --enable-apcu-spinlocks",
+        "scripts": [
+            "echo apc.serializer=igbinary >> /usr/local/etc/php/conf.d/docker-php-ext-apcu.ini"
+        ]
+    },
+    "igbinary": {
+        "source": "/tmp/extensions/igbinary/",
+        "enable": true,
+        "configure": "--enable-igbinary"
+    },
+    "event": {
+        "source": "/tmp/extensions/pecl-event/",
+        "enable": true,
+        "configure": "--with-event-core --with-event-extra",
+        "req": "libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 libevent-dev libssl-dev",
+        "remove": "libevent-dev libssl-dev"
+    },
+    "ev": {
+        "source": "/tmp/extensions/pecl-ev/",
+        "enable": true,
+        "configure": "--with-ev --enable-ev-libevent-api",
+        "req": "libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 libevent-dev libssl-dev",
+        "remove": "libevent-dev libssl-dev"
+    },
+    "inotify": {
+        "source": "/tmp/extensions/php-inotify/",
+        "enable": true
+    },
+    "lz4": {
+        "source": "/tmp/extensions/php-ext-lz4/",
+        "enable": true,
+        "req": "liblz4-1 liblz4-dev",
+        "remove": "liblz4-dev"
+    },
+    "lzf": {
+        "source": "/tmp/extensions/pecl-file_formats-lzf/",
+        "enable": true,
+        "configure": "--enable-lzf",
+        "req": "liblzf1 liblzf-dev",
+        "remove": "liblzf-dev"
+    },
+    "msgpack": {
+        "source": "/tmp/extensions/msgpack-php/",
+        "enable": true
+    },
+    "simdjson": {
+        "source": "/tmp/extensions/simdjson_php/",
+        "enable": true
+    },
+    "uuid": {
+        "source": "/tmp/extensions/pecl-networking-uuid/",
+        "enable": true
+    },
+    "zstd": {
+        "source": "/tmp/extensions/php-ext-zstd/",
+        "enable": true,
+        "req": "zstd libzstd-dev",
+        "remove": "libzstd-dev"
+    },
+    "zip": {
+        "source": "/tmp/extensions/php_zip/",
+        "enable": true,
+        "req": "libzip5 libzip-dev zipcmp",
+        "remove": "libzip-dev"
+    },
+    "redis": {
+        "source": "/tmp/extensions/phpredis/",
+        "enable": true,
+        "configure": "--enable-redis-igbinary --enable-redis-zstd --enable-redis-msgpack --enable-redis-lzf --with-liblzf --enable-redis-lz4 --with-liblz4",
+        "req": "libhiredis1.1.0 libhiredis-dev libzstd-dev liblzf-dev liblz4-dev",
+        "remove": "libhiredis-dev libzstd-dev liblzf-dev liblz4-dev"
+    },
+    "excimer": {
+        "source": "/tmp/extensions/mediawiki-php-excimer/",
+        "enable": true
+    },
+    "ds": {
+        "source": "/tmp/extensions/ext-ds/",
+        "enable": true
+    },
+    "imagick": {
+        "source": "/tmp/extensions/imagick/",
+        "enable": true,
+        "configure": "--with-imagick",
+        "req": "libmagickcore-7.q16-10 libmagickwand-7.q16-10 libmagickcore-7.q16-dev libmagickwand-7.q16-dev",
+        "remove": "libmagickcore-7.q16-dev libmagickwand-7.q16-dev"
+    },
+    "spx": {
+        "source": "/tmp/extensions/php-spx/",
+        "enable": true,
+        "req": "zlib1g-dev zlib1g",
+        "remove": "zlib1g-dev",
+        "scripts": [
+            "echo spx.http_enabled=1 >> /usr/local/etc/php/conf.d/docker-php-ext-spx.ini",
+            "echo spx.http_key=\"valksor\" >> /usr/local/etc/php/conf.d/docker-php-ext-spx.ini",
+            "echo spx.http_ip_whitelist=\"*\" >> /usr/local/etc/php/conf.d/docker-php-ext-spx.ini",
+            "echo spx.http_ui_assets_dir=/usr/share/misc/php-spx/assets/web-ui >> /usr/local/etc/php/conf.d/docker-php-ext-spx.ini",
+            "echo spx.http_trusted_proxies=\"*\" >> /usr/local/etc/php/conf.d/docker-php-ext-spx.ini",
+            "mkdir --parents /usr/share/misc/php-spx",
+            "cp -r assets /usr/share/misc/php-spx",
+            "chown -R valksor:valksor /usr/share/misc/php-spx"
+        ]
+    }
+}

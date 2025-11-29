@@ -25,6 +25,7 @@ runs:
                 git clone --single-branch https://github.com/fork-php/php-src.git source
                 git clone --single-branch https://github.com/fork-php/pcov.git pcov
                 git clone --single-branch https://github.com/fork-php/xdebug.git xdebug
+                docker pull ghcr.io/valksor/php/fpm:latest
 
         -   uses: ./.github/actions/build-simple
             with:

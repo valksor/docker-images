@@ -20,6 +20,12 @@ inputs:
 runs:
     using: "composite"
     steps:
+        -   name: Clone repos
+            shell: bash
+            run: |
+                set -euo pipefail
+                docker pull ghcr.io/valksor/php/fpm:latest
+                docker pull ghcr.io/valksor/php/fpm-testing:latest
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile1 }}
