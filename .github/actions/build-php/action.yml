@@ -41,6 +41,7 @@ runs:
                 clone https://github.com/fork-php/php_zip.git php_zip
                 clone https://github.com/fork-php/phpredis.git phpredis
                 clone https://github.com/fork-php/simdjson_php.git simdjson_php
+                docker pull ghcr.io/valksor/php/fpm-base:latest
 
         -   uses: ./.github/actions/build-simple
             with:

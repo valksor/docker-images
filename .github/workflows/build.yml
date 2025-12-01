@@ -13,7 +13,7 @@ on:
             build_target:
                 default: "debian"
                 description: "Image name (debian, postgres, nginx). Context-aware based on mode."
-                options: [ "debian", "postgres", "nginx", "curl" ]
+                options: [ "debian", "postgres", "nginx", "curl", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket" ]
                 required: true
                 type: choice
             no_cache:
@@ -58,7 +58,7 @@ jobs:
                 shell: bash
                 run: |
                     set -euo pipefail
-                    ORDER=(debian postgres nginx curl)
+                    ORDER=(debian postgres nginx curl php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
 
                     MODE="${{ github.event.inputs.mode }}"
                     BUILD_TARGET="${{ github.event.inputs.build_target }}"
@@ -70,7 +70,7 @@ jobs:
                         RUN_LIST=("$BUILD_TARGET")
                     else
                         # chain mode: build from target to end of pipeline
-                        local start_target="$BUILD_TARGET"
+                        start_target="$BUILD_TARGET"
 
                         RUN=false
                         for s in "${ORDER[@]}"; do
@@ -134,6 +134,49 @@ jobs:
                     dockerfile: curl/Dockerfile
                     tags: |
                         ${{ env.OWNER }}/curl:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            # -------------------------
+            # Stage 4: PHP chain
+            # -------------------------
+
+            -   name: build php-fpm-base
+                if: contains(steps.plan.outputs.run_list, ' php-fpm-base ')
+                uses: ./.github/actions/build-php-base
+                with:
+                    dockerfile: php/base/Dockerfile
+                    tags: |
+                        ${{ env.PHP_OWNER }}/fpm-base:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            -   name: build php-fpm
+                if: contains(steps.plan.outputs.run_list, ' php-fpm ')
+                uses: ./.github/actions/build-php
+                with:
+                    dockerfile: php/fpm/Dockerfile
+                    tags: |
+                        ${{ env.PHP_OWNER }}/fpm:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            -   name: build php-fpm-testing
+                if: contains(steps.plan.outputs.run_list, ' php-fpm-testing ')
+                uses: ./.github/actions/build-php-testing
+                with:
+                    dockerfile: php/testing/Dockerfile
+                    tags: |
+                        ${{ env.PHP_OWNER }}/fpm-testing:latest
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+            -   name: build php-fpm-socket
+                if: contains(steps.plan.outputs.run_list, ' php-fpm-socket ')
+                uses: ./.github/actions/build-php-sockets
+                with:
+                    dockerfile1: php/socket/Dockerfile
+                    tags1: |
+                        ${{ env.PHP_OWNER }}/fpm-socket:latest
+                    dockerfile2: php/testing-socket/Dockerfile
+                    tags2: |
+                        ${{ env.PHP_OWNER }}/fpm-testing-socket:latest
                     no_cache: ${{ github.event.inputs.no_cache }}
 
     cleanup:

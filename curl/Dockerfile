@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1.19.0
-# Build stage - all compilation happens here
 FROM    ghcr.io/valksor/debian:latest AS builder
 
 ARG     CACHE_BUSTER=default
@@ -15,7 +14,6 @@ USER    root
 
 WORKDIR /home/valksor
 
-# Copy source code (only in builder stage - creates layers but they're discarded)
 COPY    curl/source/ /home/valksor/curl
 COPY    curl/wolfssl/ /home/valksor/wolfssl
 COPY    curl/ngtcp2/ /home/valksor/ngtcp2
@@ -82,7 +80,6 @@ RUN     \
 &&      env | sed 's/=\(.*\)/="\1"/' | sed 's/^/export /' > /tmp/build_environment \
 &&      rm -rf /home/valksor/curl /home/valksor/wolfssl /home/valksor/ngtcp2 /home/valksor/nghttp3
 
-# Final stage - minimal runtime image
 FROM    ghcr.io/valksor/debian:latest
 
 ARG     CACHE_BUSTER=default
@@ -103,14 +100,12 @@ USER    root
 
 WORKDIR /home/valksor
 
-# Copy ONLY necessary files from builder stage
 COPY --from=builder /usr/local/bin/curl /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/include/ /usr/local/include/
 COPY --from=builder /usr/local/share/ /usr/local/share/
 COPY --from=builder /etc/ld.so.cache /etc/
 
-# Install runtime dependencies only
 RUN \
     set -eux \
 ;   apt-get update \

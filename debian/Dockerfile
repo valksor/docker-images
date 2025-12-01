@@ -3,7 +3,6 @@ FROM ghcr.io/valksor/minideb:sid
 
 ARG CACHE_BUSTER=default
 
-# Environment variables
 ENV container=docker \
     DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -11,14 +10,12 @@ ENV container=docker \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Labels
 LABEL org.opencontainers.image.title="Valksor Debian Base" \
     org.opencontainers.image.description="Optimized Debian base image" \
     org.opencontainers.image.version="1.0.0" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
     org.opencontainers.image.licenses="MIT"
 
-# Configuration files
 COPY global/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
 COPY global/02_nocache /etc/apt/apt.conf.d/02_nocache
 COPY global/compress /etc/initramfs-tools/conf.d/compress
@@ -27,7 +24,6 @@ COPY global/90parallel /etc/apt/apt.conf.d/90parallel
 
 COPY --chmod=0755 global/wait-for-it.sh /usr/local/bin/wait-for-it
 
-# Main setup - consolidated into single layer
 RUN \
     set -eux \
     && apt-get update \
