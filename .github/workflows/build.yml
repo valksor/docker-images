@@ -1,5 +1,5 @@
 name: Build Docker Images
-run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}]
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]
 
 on:
     workflow_dispatch:
@@ -13,13 +13,19 @@ on:
             build_target:
                 default: "debian"
                 description: "Image name (debian, postgres, nginx). Context-aware based on mode."
-                options: [ "debian", "postgres", "nginx", "curl", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket" ]
+                options: [ "debian", "action-split", "nginx", "postgres", "curl", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket" ]
                 required: true
                 type: choice
             no_cache:
                 default: "false"
                 description: "Build with --no-cache"
                 options: [ "true", "false" ]
+                required: false
+                type: choice
+            stop_after:
+                default: ""
+                description: "Stop building after this image (chain mode only)"
+                options: [ "", "debian", "action-split", "nginx", "postgres", "curl", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket" ]
                 required: false
                 type: choice
 
@@ -58,10 +64,11 @@ jobs:
                 shell: bash
                 run: |
                     set -euo pipefail
-                    ORDER=(debian postgres nginx curl php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
+                    ORDER=(debian action-split nginx postgres curl php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
 
                     MODE="${{ github.event.inputs.mode }}"
                     BUILD_TARGET="${{ github.event.inputs.build_target }}"
+                    STOP_AFTER="${{ github.event.inputs.stop_after }}"
 
                     RUN_LIST=()
 
@@ -69,13 +76,19 @@ jobs:
                         # single mode: build exactly one specific image
                         RUN_LIST=("$BUILD_TARGET")
                     else
-                        # chain mode: build from target to end of pipeline
+                        # chain mode: build from target to end of pipeline (or stop_after if specified)
                         start_target="$BUILD_TARGET"
 
                         RUN=false
+                        STOPPED=false
                         for s in "${ORDER[@]}"; do
                             if [[ "$s" == "$start_target" ]]; then RUN=true; fi
-                            if $RUN; then RUN_LIST+=("$s"); fi
+                            if $RUN && ! $STOPPED; then
+                                RUN_LIST+=("$s")
+                                if [[ -n "$STOP_AFTER" && "$s" == "$STOP_AFTER" ]]; then
+                                    STOPPED=true
+                                fi
+                            fi
                         done
                     fi
 
@@ -84,10 +97,11 @@ jobs:
 
                     echo "MODE=$MODE"
                     echo "BUILD_TARGET=$BUILD_TARGET"
+                    echo "STOP_AFTER=$STOP_AFTER"
                     echo "RUN_LIST=${RUN_LIST[*]}"
 
             # -------------------------
-            # Stage 1: Independent
+            # Stage: Base
             # -------------------------
 
             -   name: build debian
@@ -101,13 +115,13 @@ jobs:
                         CACHE_BUSTER=${{ github.run_id }}
                     no_cache: ${{ github.event.inputs.no_cache }}
 
-            -   name: build postgres (17..18)
-                if: contains(steps.plan.outputs.run_list, ' postgres ')
-                uses: ./.github/actions/build-postgres
+            -   name: build action split
+                if: contains(steps.plan.outputs.run_list, ' action-split ')
+                uses: ./.github/actions/build-simple
                 with:
-                    versions: "17 18"
-                    dockerfile: postgres/Dockerfile
-                    image: ${{ env.OWNER }}/postgres
+                    dockerfile: action/split/Dockerfile
+                    tags: |
+                        ${{ env.OWNER }}/action/split:latest
                     no_cache: ${{ github.event.inputs.no_cache }}
 
             -   name: build nginx
@@ -119,12 +133,17 @@ jobs:
                         ${{ env.OWNER }}/nginx:latest
                     no_cache: ${{ github.event.inputs.no_cache }}
 
-            # -------------------------
-            # Stage 2: Dependants
-            # -------------------------
+            -   name: build postgres (17..18)
+                if: contains(steps.plan.outputs.run_list, ' postgres ')
+                uses: ./.github/actions/build-postgres
+                with:
+                    versions: "17 18"
+                    dockerfile: postgres/Dockerfile
+                    image: ${{ env.OWNER }}/postgres
+                    no_cache: ${{ github.event.inputs.no_cache }}
 
             # -------------------------
-            # Stage 3: Curl
+            # Stage: Curl
             # -------------------------
 
             -   name: build curl
@@ -137,7 +156,7 @@ jobs:
                     no_cache: ${{ github.event.inputs.no_cache }}
 
             # -------------------------
-            # Stage 4: PHP chain
+            # Stage: PHP chain
             # -------------------------
 
             -   name: build php-fpm-base

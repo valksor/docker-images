@@ -33,3 +33,13 @@ runs:
                 no-cache: ${{ inputs.no_cache == 'true' }}
                 tags: ${{ inputs.tags }}
                 build-args: ${{ inputs.build-args }}
+
+        -   name: Pull built images
+            shell: bash
+            run: |
+                echo "${{ inputs.tags }}" | while read tag; do
+                    if [[ -n "$tag" ]]; then
+                        echo "Pulling $tag"
+                        docker pull "$tag" || true
+                    fi
+                done
