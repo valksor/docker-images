@@ -1,15 +1,18 @@
-FROM    ghcr.io/valksor/php/fpm-base:latest AS builder
+ARG     BASE_TAG
+FROM    ghcr.io/valksor/php/fpm-base${BASE_TAG} AS builder
 
 ARG     CACHE_BUSTER=default
-ARG     ARCH
+ARG     PHP_VERSION
 
-USER    root
-
-ENV     PHP_VERSION=8.5.0-dev
+ENV     PHP_VERSION=${PHP_VERSION}
 ENV     PHP_INI_DIR=/usr/local/etc/php
 ENV     PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O3 -ftree-vectorize -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -march=native -mtune=native"
 ENV     PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV     PHP_LDFLAGS="-Wl,-O3 -pie"
+ENV     PHP_BUILD_PROVIDER='https://github.com/valksor/docker-images'
+ENV     PHP_UNAME="Linux (arm64) - Docker"
+
+USER    root
 
 COPY    php/source/                             /usr/src/php
 
@@ -92,18 +95,20 @@ RUN     \
             ~/.pearrc \
 &&      env | sed 's/=\(.*\)/="\1"/' | sed 's/^/export /' > /tmp/build_environment
 
-FROM    ghcr.io/valksor/php/fpm-base:latest
+FROM    ghcr.io/valksor/php/fpm-base${BASE_TAG}
 
 ARG     CACHE_BUSTER=default
-ARG     ARCH
+ARG     PHP_VERSION
 
 USER    root
 
-ENV     PHP_VERSION=8.5.0-dev
+ENV     PHP_VERSION=${PHP_VERSION}
 ENV     PHP_INI_DIR=/usr/local/etc/php
 ENV     PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O3 -ftree-vectorize -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -march=native -mtune=native"
 ENV     PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV     PHP_LDFLAGS="-Wl,-O3 -pie"
+ENV     PHP_BUILD_PROVIDER='https://github.com/valksor/docker-images'
+ENV     PHP_UNAME="Linux (arm64) - Docker"
 
 # CRITICAL: Preserve ALL environment variables from build process
 COPY --from=builder /tmp/build_environment /tmp/

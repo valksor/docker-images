@@ -17,22 +17,34 @@ inputs:
         description: "Use --no-cache"
         required: false
         default: "false"
+    base_tag:
+        description: "Base image tag suffix"
+        required: false
+        default: ""
 runs:
     using: "composite"
     steps:
-        -   name: Clone repos
+        -   name: Pull base images
             shell: bash
             run: |
                 set -euo pipefail
-                docker pull ghcr.io/valksor/php/fpm:latest
-                docker pull ghcr.io/valksor/php/fpm-testing:latest
+                BASE_TAG=":latest"
+                if [ "${{ inputs.base_tag }}" = "-master" ]; then
+                    BASE_TAG=":master"
+                fi
+                docker pull ghcr.io/valksor/php/fpm${BASE_TAG}
+                docker pull ghcr.io/valksor/php/fpm-testing${BASE_TAG}
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile1 }}
                 tags: ${{ inputs.tags1 }}
                 no_cache: ${{ inputs.no_cache }}
+                build-args: |
+                    BASE_TAG=${{ inputs.base_tag }}
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile2 }}
                 tags: ${{ inputs.tags2 }}
                 no_cache: ${{ inputs.no_cache }}
+                build-args: |
+                    BASE_TAG=${{ inputs.base_tag}}

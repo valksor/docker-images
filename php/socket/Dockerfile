@@ -1,4 +1,5 @@
-FROM    ghcr.io/valksor/php/fpm:latest
+ARG     BASE_TAG
+FROM    ghcr.io/valksor/php/fpm${BASE_TAG}
 
 ARG     CACHE_BUSTER=default
 
