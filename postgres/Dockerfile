@@ -9,7 +9,6 @@ ARG     CACHE_BUSTER=default
 
 LABEL org.opencontainers.image.title="Valksor Postgres ${VERSION}" \
     org.opencontainers.image.description="Optimized Postgres ${VERSION} image" \
-    org.opencontainers.image.version="1.0.0" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
     org.opencontainers.image.licenses="MIT"
 

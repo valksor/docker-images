@@ -11,6 +11,14 @@ inputs:
         description: "Use --no-cache"
         required: false
         default: "false"
+    php_branch:
+        description: "PHP branch to clone (empty = default branch)"
+        required: false
+        default: ""
+    php_version:
+        description: "PHP version for build"
+        required: false
+        default: "8.5.0-dev"
 runs:
     using: "composite"
     steps:
@@ -23,7 +31,16 @@ runs:
                 mkdir -p php
                 cd php
                 clone() { git clone --single-branch "$1" "$2"; cd "$2"; git submodule update --init --force; cd ..; }
-                clone https://github.com/fork-php/php-src.git source
+
+                # Clone php-src with optional branch parameter
+                CLONE_CMD="git clone --single-branch"
+                if [ -n "${{ inputs.php_branch }}" ]; then
+                    CLONE_CMD="$CLONE_CMD --branch ${{ inputs.php_branch }}"
+                fi
+                CLONE_CMD="$CLONE_CMD https://github.com/fork-php/php-src.git source"
+                eval $CLONE_CMD
+                cd source && git submodule update --init --force && cd ..
+
                 clone https://github.com/fork-php/apcu.git apcu
                 clone https://github.com/fork-php/ext-ds.git ext-ds
                 clone https://github.com/fork-php/igbinary.git igbinary
@@ -41,10 +58,18 @@ runs:
                 clone https://github.com/fork-php/php_zip.git php_zip
                 clone https://github.com/fork-php/phpredis.git phpredis
                 clone https://github.com/fork-php/simdjson_php.git simdjson_php
-                docker pull ghcr.io/valksor/php/fpm-base:latest
+
+                BASE_TAG=":latest"
+                if [ "${{ inputs.php_branch }}" = "master" ]; then
+                    BASE_TAG=":master"
+                fi
+                docker pull ghcr.io/valksor/php/fpm-base${BASE_TAG}
 
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile }}
                 tags: ${{ inputs.tags }}
                 no_cache: ${{ inputs.no_cache }}
+                build-args: |
+                    BASE_TAG=${{ inputs.php_branch == 'master' && ':master' || ':latest' }}
+                    PHP_VERSION=${{ inputs.php_version }}

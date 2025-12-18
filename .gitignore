@@ -1,1 +1,3 @@
 .claude
+.junie/
+!.junie/guidelines.md

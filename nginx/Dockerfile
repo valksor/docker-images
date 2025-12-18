@@ -11,10 +11,8 @@ ENV     container=docker \
 
 SHELL   ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Labels
 LABEL org.opencontainers.image.title="Valksor Nginx" \
     org.opencontainers.image.description="Optimized Nginx image" \
-    org.opencontainers.image.version="1.0.0" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
     org.opencontainers.image.licenses="MIT"
 

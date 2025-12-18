@@ -1,6 +1,12 @@
-FROM    ghcr.io/valksor/php/fpm-testing:latest
+ARG     BASE_TAG=""
+FROM    ghcr.io/valksor/php/fpm-testing${BASE_TAG}
 
 ARG     CACHE_BUSTER=default
+
+LABEL org.opencontainers.image.title="Valksor PHP FPM Testing Socket" \
+    org.opencontainers.image.description="Optimized PHP-FPM testing image with Unix socket support" \
+    org.opencontainers.image.source="https://github.com/valksor/docker-images" \
+    org.opencontainers.image.licenses="MIT"
 
 USER    root
 

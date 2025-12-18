@@ -86,7 +86,6 @@ ARG     CACHE_BUSTER=default
 
 LABEL org.opencontainers.image.title="Valksor cURL" \
     org.opencontainers.image.description="Optimized cURL image with wolfSSL, HTTP/3 support" \
-    org.opencontainers.image.version="1.0.0" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
     org.opencontainers.image.licenses="MIT"
 
