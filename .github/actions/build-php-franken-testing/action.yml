@@ -1,5 +1,5 @@
-name: "Build PHP-FPM"
-description: "Clone php-src and extensions then build"
+name: "Build PHP-Franken Testing"
+description: "Build FrankenPHP testing image by reusing build-php-testing action"
 inputs:
     dockerfile:
         description: "Path to Dockerfile"
@@ -19,14 +19,6 @@ inputs:
         description: "PHP version for build"
         required: false
         default: "8.5.0-dev"
-    base_image:
-        description: "Base image to pull (fpm-base or zts-base)"
-        required: false
-        default: "fpm-base"
-    extra_repos:
-        description: "Extra repos to clone (format: 'name1=url1 name2=url2')"
-        required: false
-        default: ""
 runs:
     using: "composite"
     steps:
@@ -35,8 +27,9 @@ runs:
         -   uses: ./.github/actions/clone-php-repos
             with:
                 php_branch: ${{ inputs.php_branch }}
-                base_image: ${{ inputs.base_image }}
-                extra_repos: ${{ inputs.extra_repos }}
+                base_image: "zts-testing"
+                include_testing: "true"
+                extra_repos: "frankenphp=https://github.com/php/frankenphp.git"
 
         -   uses: ./.github/actions/build-simple
             with:

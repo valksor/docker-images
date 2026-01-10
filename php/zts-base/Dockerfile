@@ -68,7 +68,7 @@ RUN     \
             --enable-bcmath \
             --enable-calendar \
             --enable-exif \
-            --enable-fpm \
+            --enable-embed=shared \
             --enable-huge-code-pages \
             --enable-intl \
             --enable-mbstring \
@@ -80,11 +80,12 @@ RUN     \
             --enable-shmop \
             --enable-soap \
             --enable-sockets \
+            --enable-zts \
+            --enable-zend-max-execution-timers \
+            --disable-zend-signals \
             --with-bz2 \
             --with-curl \
             --with-ffi \
-            --with-fpm-group=valksor \
-            --with-fpm-user=valksor \
             --with-gmp \
             --with-libxml \
             --with-openssl \
@@ -114,15 +115,6 @@ RUN     \
 &&      php --version \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      chmod -R 1777 /usr/local/bin \
-&&      mkdir --parents --mode=777 --verbose /run/php-fpm \
-&&      touch /run/php-fpm/.keep_dir \
-&&      wget -O /usr/local/bin/php-fpm-healthcheck https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
-&&      chmod +x /usr/local/bin/php-fpm-healthcheck \
-&&      chown www-data:www-data /usr/local/bin/php-fpm-healthcheck \
-&&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev libwebp-dev \
-&&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false libxml2-dev libssl-dev libsqlite3-dev libbz2-dev libidn2-dev \
-        libzstd-dev libbrotli-dev libpsl-dev libgsasl-dev librtmp-dev libnghttp2-dev libnghttp3-dev libonig-dev libpq-dev libsodium-dev liblzma-dev \
-        libargon2-dev libtidy-dev libzip-dev libgmp-dev zlib1g-dev libffi-dev libssh2-1-dev libldap-dev libxslt1-dev libicu-dev libexif-dev libheif-dev \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
 &&      ldconfig \
 &&      mkdir --parents /var/lib/php/sessions \
@@ -140,9 +132,6 @@ RUN     \
             /usr/local/bin/docker-php-ext-install \
             /usr/local/bin/docker-php-source \
             /usr/local/bin/phpdbg \
-            /usr/local/etc/php-fpm.conf \
-            /usr/local/etc/php-fpm.d/* \
-            /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
             /usr/local/etc/php/php.ini \
             /usr/local/php/man/* \
             /usr/src/php \
@@ -163,8 +152,8 @@ FROM    ghcr.io/valksor/curl:latest
 ARG     PHP_COMMIT_HASH
 ARG     PHP_VERSION
 
-LABEL org.opencontainers.image.title="Valksor PHP Base" \
-    org.opencontainers.image.description="Optimized PHP base image with FPM support" \
+LABEL org.opencontainers.image.title="Valksor PHP ZTS Base" \
+    org.opencontainers.image.description="Optimized PHP base image with ZTS and embed SAPI support" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
     org.opencontainers.image.licenses="MIT"
 
@@ -193,7 +182,6 @@ COPY --from=builder /etc/ld.so.cache /etc/
 COPY --from=builder /usr/local/include/ /usr/local/include/
 COPY --from=builder /usr/local/sbin/ /usr/local/sbin/
 COPY --from=builder /usr/bin/ /usr/bin/
-COPY --from=builder /run/php-fpm/ /run/php-fpm/
 COPY --from=builder /var/lib/php/ /var/lib/php/
 
 RUN     \
@@ -213,7 +201,6 @@ RUN     \
 &&      chown valksor:valksor /var/www/html \
 &&      chmod 1777 -R /var/www/html \
 &&      ldconfig \
-&&      chown valksor:valksor /run/php-fpm \
 &&      rm -rf \
             ~/.pearrc \
             /home/valksor/*.deb \
@@ -225,9 +212,7 @@ RUN     \
             /usr/local/bin/docker-php-ext-install \
             /usr/local/bin/docker-php-source \
             /usr/local/bin/phpdbg \
-            /usr/local/etc/php-fpm.conf \
-            /usr/local/etc/php-fpm.d/* \
-            /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
+            /usr/local/etc/php/php.ini-production \
             /usr/local/php/man/* \
             /usr/src/php \
             /var/cache/* \
@@ -240,12 +225,9 @@ RUN     \
             /usr/lib/python3.*/__hello__.py \
             ~/.pearrc
 
-COPY    php/ini/fpm/php-fpm.conf /usr/local/etc/php-fpm.conf
-COPY    php/ini/fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY    php/ini/zz.ini /usr/local/etc/php/conf.d/zz.ini
-COPY    php/ini/fpm/fastcgi.ini /usr/local/etc/php/conf.d/zzz-fastcgi.ini
 COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 COPY    php/preload.php /var/www/preload.php
+
 
 RUN     \
         set -eux \
@@ -260,6 +242,9 @@ STOPSIGNAL SIGQUIT
 
 WORKDIR /var/www/html
 
-EXPOSE  9000
+EXPOSE  80
+EXPOSE  443
+EXPOSE  443/udp
+EXPOSE  2019
 
-CMD     ["php-fpm"]
+CMD     ["php", "-a"]

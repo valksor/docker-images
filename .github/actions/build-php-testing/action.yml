@@ -19,34 +19,25 @@ inputs:
         description: "PHP version for build"
         required: false
         default: "8.5.0-dev"
+    base_image:
+        description: "Base image to pull (fpm or zts)"
+        required: false
+        default: "fpm"
+    extra_repos:
+        description: "Extra repos to clone (format: 'name1=url1 name2=url2')"
+        required: false
+        default: ""
 runs:
     using: "composite"
     steps:
         -   uses: actions/checkout@v6
 
-        -   name: Clone repos
-            shell: bash
-            run: |
-                set -euo pipefail
-                mkdir -p php
-                cd php
-
-                # Clone php-src with optional branch parameter
-                CLONE_CMD="git clone --single-branch"
-                if [ -n "${{ inputs.php_branch }}" ]; then
-                    CLONE_CMD="$CLONE_CMD --branch ${{ inputs.php_branch }}"
-                fi
-                CLONE_CMD="$CLONE_CMD https://github.com/fork-php/php-src.git source"
-                eval $CLONE_CMD
-
-                git clone --single-branch https://github.com/fork-php/pcov.git pcov
-                git clone --single-branch https://github.com/fork-php/xdebug.git xdebug
-
-                BASE_TAG=":latest"
-                if [ "${{ inputs.php_branch }}" = "master" ]; then
-                    BASE_TAG=":master"
-                fi
-                docker pull ghcr.io/valksor/php/fpm${BASE_TAG}
+        -   uses: ./.github/actions/clone-php-repos
+            with:
+                php_branch: ${{ inputs.php_branch }}
+                base_image: ${{ inputs.base_image }}
+                include_testing: "true"
+                extra_repos: ${{ inputs.extra_repos }}
 
         -   uses: ./.github/actions/build-simple
             with:

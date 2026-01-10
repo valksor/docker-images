@@ -1,0 +1,57 @@
+# Basic PHP app configuration
+# This is an example Caddyfile for FrankenPHP
+# Copy this file and customize it for your application
+
+:80 {
+    # Serve PHP application from /var/www/html/public
+    root * /var/www/html/public
+
+    # Enable FrankenPHP PHP server
+    php_server
+
+    # Serve static files directly
+    @static {
+        file
+        path *.ico *.css *.js *.png *.jpg *.jpeg *.gif *.svg *.woff *.woff2 *.webp *.avif
+    }
+    handle @static {
+        file_server
+    }
+
+    # Enable compression
+    encode gzip
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+    }
+}
+
+# For production with HTTPS, uncomment and customize:
+# :443 {
+#     root * /var/www/html/public
+#     php_server
+#
+#     @static {
+#         file
+#         path *.ico *.css *.js *.png *.jpg *.jpeg *.gif *.svg *.woff *.woff2 *.webp *.avif
+#     }
+#     handle @static {
+#         file_server
+#     }
+#
+#     encode gzip
+#
+#     # Use Let's Encrypt for SSL (requires valid domain)
+#     # tls your@email.com
+#
+#     # Or use internal certificates for local development
+#     tls internal
+#
+#     log {
+#         output file /var/log/caddy/access.log
+#     }
+# }
+
+# For HTTP/3 support, FrankenPHP automatically handles UDP on port 443/udp
+# when using HTTPS configuration

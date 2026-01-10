@@ -1,0 +1,79 @@
+name: "Clone PHP Repos"
+description: "Clone php-src, extensions, and optional extra repos"
+inputs:
+    php_branch:
+        description: "PHP branch to clone (empty = default branch)"
+        required: false
+        default: ""
+    base_image:
+        description: "Base image to pull (fpm-base or zts-base)"
+        required: false
+        default: "fpm-base"
+    include_testing:
+        description: "Also clone testing repos (xdebug, pcov)"
+        required: false
+        default: "false"
+    extra_repos:
+        description: "Extra repos to clone (format: 'name1=url1 name2=url2')"
+        required: false
+        default: ""
+runs:
+    using: "composite"
+    steps:
+        -   name: Clone repos
+            shell: bash
+            run: |
+                set -euo pipefail
+                mkdir -p php
+                cd php
+                clone() { git clone --single-branch "$1" "$2"; cd "$2"; git submodule update --init --force; cd ..; }
+
+                # Clone php-src with optional branch parameter
+                CLONE_CMD="git clone --single-branch"
+                if [ -n "${{ inputs.php_branch }}" ]; then
+                    CLONE_CMD="$CLONE_CMD --branch ${{ inputs.php_branch }}"
+                fi
+                CLONE_CMD="$CLONE_CMD https://github.com/fork-php/php-src.git source"
+                eval $CLONE_CMD
+                cd source && git submodule update --init --force && cd ..
+
+                # Clone production extensions
+                clone https://github.com/fork-php/apcu.git apcu
+                clone https://github.com/fork-php/ext-ds.git ext-ds
+                clone https://github.com/fork-php/igbinary.git igbinary
+                clone https://github.com/fork-php/imagick.git imagick
+                clone https://github.com/fork-php/mediawiki-php-excimer.git mediawiki-php-excimer
+                clone https://github.com/fork-php/msgpack-php.git msgpack-php
+                clone https://github.com/fork-php/pecl-ev.git pecl-ev
+                clone https://github.com/fork-php/pecl-event.git pecl-event
+                clone https://github.com/fork-php/pecl-file_formats-lzf.git pecl-file_formats-lzf
+                clone https://github.com/fork-php/pecl-networking-uuid.git pecl-networking-uuid
+                clone https://github.com/fork-php/php-ext-lz4.git php-ext-lz4
+                clone https://github.com/fork-php/php-ext-zstd.git php-ext-zstd
+                clone https://github.com/fork-php/php-inotify.git php-inotify
+                clone https://github.com/fork-php/php-spx.git php-spx
+                clone https://github.com/fork-php/php_zip.git php_zip
+                clone https://github.com/fork-php/phpredis.git phpredis
+                clone https://github.com/fork-php/simdjson_php.git simdjson_php
+
+                # Clone testing extensions if requested
+                if [ "${{ inputs.include_testing }}" = "true" ]; then
+                    clone https://github.com/fork-php/pcov.git pcov
+                    clone https://github.com/fork-php/xdebug.git xdebug
+                fi
+
+                # Clone extra repos if specified
+                if [ -n "${{ inputs.extra_repos }}" ]; then
+                    for extra_repo in ${{ inputs.extra_repos }}; do
+                        name=$(echo $extra_repo | cut -d= -f1)
+                        url=$(echo $extra_repo | cut -d= -f2)
+                        clone "$url" "$name"
+                    done
+                fi
+
+                # Pull the base image
+                BASE_TAG=":latest"
+                if [ "${{ inputs.php_branch }}" = "master" ]; then
+                    BASE_TAG=":master"
+                fi
+                docker pull ghcr.io/valksor/php/${{ inputs.base_image }}${BASE_TAG}

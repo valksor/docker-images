@@ -1,0 +1,44 @@
+# The Caddyfile is an easy way to configure FrankenPHP and the Caddy web server.
+#
+# https://frankenphp.dev/docs/config
+# https://caddyserver.com/docs/caddyfile
+{
+	# Skip installing CA certificates (for development, can be removed for prod)
+	skip_install_trust
+	# Allow injecting global options via env var
+	{$CADDY_GLOBAL_OPTIONS}
+	frankenphp {
+		worker ./public/index.php
+	}
+}
+
+# Allow injecting extra config blocks via env var
+{$CADDY_EXTRA_CONFIG}
+
+# Server name (default: localhost, override via SERVER_NAME env var)
+{$SERVER_NAME::80} {
+	root {$SERVER_ROOT:/var/www/html/public}
+	encode zstd br gzip
+
+	php_server
+
+	# Optional: inject server-specific directives via env var
+	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+}
+
+# HTTPS server for HTTP/2 and HTTP/3 testing
+# {$SERVER_NAME::443} {
+# 	root {$SERVER_ROOT:/var/www/html/public}
+# 	encode zstd br gzip
+#
+#	php_server
+#
+#	# TLS configuration with mkcert certificates
+#	tls ./certs/localhost.pem ./certs/localhost-key.pem
+#
+#	# Optional: inject server-specific directives via env var
+#	{$CADDY_SERVER_EXTRA_DIRECTIVES}
+# }
+
+# Import additional Caddyfile configs from Caddyfile.d directory
+import Caddyfile.d/*.caddyfile
