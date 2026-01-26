@@ -78,6 +78,24 @@
         "source": "/tmp/extensions/mediawiki-php-excimer/",
         "enable": true
     },
+    "protobuf": {
+        "source": "/tmp/extensions/protobuf/php/ext/google/protobuf",
+        "enable": true,
+        "configure": "--enable-protobuf",
+        "scripts": [
+            "echo protobuf.keep_descriptor_pool_ref=1 >> /usr/local/etc/php/conf.d/docker-php-ext-protobuf.ini"
+        ]
+    },
+    "grpc": {
+        "source": "/tmp/extensions/grpc/src/php/ext/grpc",
+        "enable": true,
+        "configure": "--enable-grpc=/tmp/extensions/grpc",
+        "env": "GRPC_LIB_SUBDIR=libs/opt",
+        "scripts": [
+            "echo grpc.enable_fork_support = 1 >> /usr/local/etc/php/conf.d/docker-php-ext-grpc.ini",
+            "echo grpc.poll_strategy = epoll1 >> /usr/local/etc/php/conf.d/docker-php-ext-grpc.ini"
+        ]
+    },
     "ds": {
         "source": "/tmp/extensions/ext-ds/",
         "enable": true
@@ -86,8 +104,8 @@
         "source": "/tmp/extensions/imagick/",
         "enable": true,
         "configure": "--with-imagick",
-        "req": "libmagickcore-7.q16-10 libmagickwand-7.q16-10 libmagickcore-7.q16-dev libmagickwand-7.q16-dev",
-        "remove": "libmagickcore-7.q16-dev libmagickwand-7.q16-dev"
+        "req": "libmagickcore-7.q16-10 libmagickwand-7.q16-10 libmagickcore-dev libmagickwand-dev",
+        "remove": "libmagickcore-dev libmagickwand-dev"
     },
     "spx": {
         "source": "/tmp/extensions/php-spx/",

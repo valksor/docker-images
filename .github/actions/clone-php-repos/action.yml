@@ -55,6 +55,8 @@ runs:
                 clone https://github.com/fork-php/php_zip.git php_zip
                 clone https://github.com/fork-php/phpredis.git phpredis
                 clone https://github.com/fork-php/simdjson_php.git simdjson_php
+                clone https://github.com/fork-php/grpc.git grpc
+                clone https://github.com/fork-php/protobuf.git protobuf
 
                 # Clone testing extensions if requested
                 if [ "${{ inputs.include_testing }}" = "true" ]; then

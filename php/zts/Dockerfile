@@ -63,11 +63,23 @@ COPY    php/php-spx/ /tmp/extensions/php-spx/
 COPY    php/php_zip/ /tmp/extensions/php_zip/
 COPY    php/phpredis/ /tmp/extensions/phpredis/
 COPY    php/simdjson_php/ /tmp/extensions/simdjson_php/
+COPY    php/grpc/ /tmp/extensions/grpc/
+COPY    php/protobuf/ /tmp/extensions/protobuf/
 
 RUN     \
         set -eux \
+&&      cd /tmp/extensions/grpc \
+&&      EXTRA_DEFINES=GRPC_POSIX_FORK_ALLOW_PTHREAD_ATFORK make -j$(nproc) shared_c CONFIG=opt \
+&&      cd - \
+&&      mkdir -p /tmp/extensions/protobuf/php/ext/google/protobuf/third_party \
+&&      ln -sf /tmp/extensions/protobuf/third_party/utf8_range /tmp/extensions/protobuf/php/ext/google/protobuf/third_party/utf8_range \
+&&      sed -i 's/zval_dtor/zval_ptr_dtor/g' /tmp/extensions/protobuf/php/ext/google/protobuf/map.c \
+&&      sed -i 's/zval_dtor/zval_ptr_dtor/g' /tmp/extensions/protobuf/php/ext/google/protobuf/message.c \
 &&      chmod +x /tmp/build-extensions.sh \
 &&      /tmp/build-extensions.sh \
+&&      cp /tmp/extensions/grpc/libs/opt/libgrpc*.so* /usr/local/lib/ \
+&&      strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true \
+&&      ldconfig \
 &&      chmod -R 1777 /usr/local/bin \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
@@ -122,18 +134,17 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/etc/ /usr/local/etc/
 COPY --from=builder /usr/local/share/ /usr/local/share/
+COPY --from=builder /usr/share/ /usr/share/
 COPY --from=builder /var/www/ /var/www/
 COPY --from=builder /home/valksor/ /home/valksor/
 COPY --from=builder /etc/ld.so.cache /etc/
 COPY --from=builder /usr/local/sbin/ /usr/local/sbin/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /var/lib/php/ /var/lib/php/
-COPY --from=builder /usr/share/misc/php-spx/ /usr/share/misc/php-spx/
 
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
             libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 \

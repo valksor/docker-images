@@ -72,7 +72,6 @@ RUN     \
             /usr/share/i18n \
             /usr/local/share/man \
             /usr/lib/python3.*/__pycache__ \
-            /usr/lib/python3.*/__pycache__ \
             /usr/lib/python3.*/__phello__ \
             /usr/lib/python3.*/__hello__.py \
             /root/.cache

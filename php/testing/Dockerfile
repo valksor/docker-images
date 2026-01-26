@@ -98,6 +98,7 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/etc/ /usr/local/etc/
 COPY --from=builder /usr/local/share/ /usr/local/share/
+COPY --from=builder /usr/share/ /usr/share/
 COPY --from=builder /var/www/ /var/www/
 COPY --from=builder /home/valksor/ /home/valksor/
 COPY --from=builder /etc/ld.so.cache /etc/
@@ -105,16 +106,12 @@ COPY --from=builder /usr/local/sbin/ /usr/local/sbin/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /run/php-fpm/ /run/php-fpm/
 COPY --from=builder /var/lib/php/ /var/lib/php/
-COPY --from=builder /usr/share/misc/php-spx/ /usr/share/misc/php-spx/
 
 COPY    --from=composer:2                       /usr/bin/composer /usr/bin/
 
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get upgrade -y \
-&&      apt-get install -y --no-install-recommends --allow-downgrades \
-            fontconfig \
 &&      apt-get autoremove -y --purge \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
 &&      ldconfig \

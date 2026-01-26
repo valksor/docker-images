@@ -84,7 +84,7 @@ RUN     \
             libreadline-dev libsodium-dev libsqlite3-dev libssl-dev \
             libxml2-dev zlib1g-dev \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
-            /usr/local/src/watcher /root/go
+            /usr/local/src/watcher /root/go /usr/local/go
 
 FROM    ghcr.io/valksor/php/zts${BASE_TAG}
 
@@ -123,7 +123,6 @@ COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libcap2-bin libstdc++6 \
 &&      apt-get autoremove -y --purge \

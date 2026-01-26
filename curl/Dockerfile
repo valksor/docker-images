@@ -27,7 +27,7 @@ RUN     \
 &&      apt-get upgrade -y \
 &&      apt-get purge -y curl* \
 &&      apt-get install -y --no-install-recommends make automake autoconf libtool gcc g++ libbrotli1 libbrotli-dev zstd libzstd-dev librtmp-dev librtmp1 rtmpdump \
-        libgsasl-dev libgsasl18 libpsl-dev perl libnghttp2-dev nghttp2 libssl-dev libssl3t64 libpsl5t64 libssh2-1-dev libssh2-1t64 libldap-dev libldap2-dev libldap-common libldap-2.5-0 libldap2 \
+        libgsasl-dev libgsasl18 libpsl-dev perl libnghttp2-dev nghttp2 libssl-dev libssl3t64 libpsl5t64 libssh2-1-dev libssh2-1t64 libldap-dev libldap2-dev libldap-common libldap2 \
 &&      cd nghttp3 \
 &&      autoreconf -fi \
 &&      ./configure --prefix=/usr/local --enable-lib-only \
@@ -120,7 +120,6 @@ RUN \
         libnghttp2-14 \
         libssl3t64 \
         libssh2-1t64 \
-        libldap-2.5-0 \
         libldap-common \
 &&  apt-get autoremove -y --purge \
 &&  rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
