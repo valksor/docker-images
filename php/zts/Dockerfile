@@ -78,7 +78,7 @@ RUN     \
 &&      chmod +x /tmp/build-extensions.sh \
 &&      /tmp/build-extensions.sh \
 &&      cp /tmp/extensions/grpc/libs/opt/libgrpc*.so* /usr/local/lib/ \
-&&      strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true \
+&&      (strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true) \
 &&      ldconfig \
 &&      chmod -R 1777 /usr/local/bin \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev \
@@ -145,6 +145,7 @@ COPY --from=builder /var/lib/php/ /var/lib/php/
 RUN     \
         set -eux \
 &&      apt-get update \
+&&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
             libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 \

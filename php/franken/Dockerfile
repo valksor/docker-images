@@ -123,6 +123,7 @@ COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 RUN     \
         set -eux \
 &&      apt-get update \
+&&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libcap2-bin libstdc++6 \
 &&      apt-get autoremove -y --purge \
