@@ -18,7 +18,7 @@ ENV     FRANKENPHP_VERSION=${FRANKENPHP_VERSION}
 ENV     GOTOOLCHAIN=local
 
 # Install Go toolchain
-COPY    --from=golang:1.25   /usr/local/go /usr/local/go
+COPY    --from=golang:1.26   /usr/local/go /usr/local/go
 ENV     PATH=/usr/local/go/bin:$PATH
 
 # Install build dependencies for FrankenPHP

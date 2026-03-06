@@ -26,7 +26,7 @@ RUN     \
 ;       apt-get update \
 &&      apt-get upgrade -y \
 &&      apt-get purge -y curl* \
-&&      apt-get install -y --no-install-recommends make automake autoconf libtool gcc g++ libbrotli1 libbrotli-dev zstd libzstd-dev librtmp-dev librtmp1 rtmpdump \
+&&      apt-get install -y --no-install-recommends make automake autoconf libtool gcc g++ pkg-config libbrotli1 libbrotli-dev zstd libzstd-dev librtmp-dev librtmp1 rtmpdump \
         libgsasl-dev libgsasl18 libpsl-dev perl libnghttp2-dev nghttp2 libssl-dev libssl3t64 libpsl5t64 libssh2-1-dev libssh2-1t64 libldap-dev libldap2-dev libldap-common libldap2 \
 &&      cd nghttp3 \
 &&      autoreconf -fi \
@@ -35,12 +35,13 @@ RUN     \
 &&      make install \
 &&      cd ../wolfssl \
 &&      autoreconf -fi \
-&&      CFLAGS="-DWOLFSSL_NO_STRICT -DWOLFSSL_NO_ASN_STRICT" ./configure \
+&&      CFLAGS="-DWOLFSSL_NO_STRICT -DWOLFSSL_NO_ASN_STRICT" ./configure --prefix=/usr/local \
           --disable-crypttests \
           --disable-examples \
           --disable-lighty \
           --disable-sniffer \
           --disable-wpas \
+          --enable-aesecb \
           --enable-alpn \
           --enable-altcertchains \
           --enable-base64encode \
@@ -65,15 +66,19 @@ RUN     \
           --enable-tlsx \
 &&      make -j"$jobs" \
 &&      make install \
+&&      ldconfig \
 &&      cd ../ngtcp2 \
 &&      autoreconf -fi \
-&&      CFLAGS="-DWOLFSSL_NO_STRICT -DWOLFSSL_NO_ASN_STRICT" ./configure LDFLAGS="-Wl,-rpath,/usr/local/lib" --prefix=/usr/local --with-wolfssl --with-crypto-backend=wolfssl --enable-lib-only \
+&&      PKG_CONFIG_PATH="/usr/local/lib/pkgconfig" ./configure LDFLAGS="-Wl,-rpath,/usr/local/lib" --prefix=/usr/local --with-wolfssl --without-openssl --enable-lib-only \
 &&      make -j"$jobs" \
 &&      make install \
+&&      ldconfig \
+&&      echo 'Requires: wolfssl' >> /usr/local/lib/pkgconfig/libngtcp2_crypto_wolfssl.pc \
 &&      cd ../curl \
 &&      autoreconf -fi \
-&&      ./configure CFLAGS='-fstack-protector-strong -fpic -fpie -O3 -ftree-vectorize -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -march=native -mtune=native -DWOLFSSL_NO_STRICT -DWOLFSSL_NO_ASN_STRICT' LDFLAGS='-Wl,-rpath,/usr/local/lib' --prefix=/usr/local \
-            --with-wolfssl --with-zlib --with-brotli --enable-ipv6 --with-libidn2 --enable-sspi --with-librtmp --with-ngtcp2 --with-nghttp3 --with-nghttp2 --enable-websockets --with-zstd --disable-manual --disable-docs \
+&&      export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH:-}" \
+&&      ./configure CFLAGS='-fstack-protector-strong -fpic -fpie -O3 -ftree-vectorize -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -march=native -mtune=native -DWOLFSSL_NO_STRICT -DWOLFSSL_NO_ASN_STRICT' LDFLAGS='-Wl,-rpath,/usr/local/lib -L/usr/local/lib' LIBS='-lngtcp2_crypto_wolfssl -lwolfssl' --prefix=/usr/local \
+            --with-wolfssl=/usr/local --with-zlib --with-brotli --enable-ipv6 --with-libidn2 --enable-sspi --with-librtmp --with-ngtcp2 --with-nghttp3=/usr/local --with-nghttp2 --enable-websockets --with-zstd --disable-manual --disable-docs \
             --with-libssh2 --enable-ldap --enable-ldaps \
 &&      make -j"$jobs" \
 &&      make install \
