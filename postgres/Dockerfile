@@ -43,7 +43,19 @@ RUN     \
 &&      apt-get update \
 &&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --no-install-suggests \
-            postgresql-contrib ca-certificates \
+            curl gnupg lsb-release ca-certificates \
+&&      echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/timescaledb.list \
+&&      curl -fsSL https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor -o /etc/apt/trusted.gpg.d/timescaledb.gpg \
+&&      apt-get update \
+&&      apt-get install -y --no-install-recommends --no-install-suggests \
+            postgresql-contrib postgresql-${VERSION}-pgvector \
+            timescaledb-2-postgresql-${VERSION} unzip \
+&&      ARCH=$(dpkg --print-architecture) \
+&&      PGVECTORSCALE_VERSION=0.9.0 \
+&&      curl -fsSL -o /tmp/pgvectorscale.zip "https://github.com/timescale/pgvectorscale/releases/download/${PGVECTORSCALE_VERSION}/pgvectorscale-${PGVECTORSCALE_VERSION}-pg${VERSION}-${ARCH}.zip" \
+&&      unzip /tmp/pgvectorscale.zip -d /tmp/pgvectorscale \
+&&      dpkg -i /tmp/pgvectorscale/pgvectorscale-postgresql-${VERSION}_${PGVECTORSCALE_VERSION}-Linux_${ARCH}.deb \
+&&      rm -rf /tmp/pgvectorscale.zip /tmp/pgvectorscale \
 &&      mkdir -p /backup \
 &&      chown -R postgres:postgres /backup \
 &&      mkdir -p /docker-entrypoint-initdb.d \

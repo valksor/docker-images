@@ -10,6 +10,14 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
 CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
 GRANT EXECUTE ON FUNCTION public.unaccent(text) TO PUBLIC;
 
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
+
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+CREATE EXTENSION IF NOT EXISTS vectorscale WITH SCHEMA public;
+
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
 ALTER DATABASE template1 SET search_path TO public, "$POSTGRES_USER", pg_catalog;
 
 \c template1;
@@ -18,6 +26,10 @@ GRANT USAGE ON SCHEMA public TO PUBLIC;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
 CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
 GRANT EXECUTE ON FUNCTION public.unaccent(text) TO PUBLIC;
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+CREATE EXTENSION IF NOT EXISTS vectorscale WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 \c postgres;
 SET search_path TO public, "$POSTGRES_USER", pg_catalog;
@@ -35,6 +47,10 @@ DO $$
                     GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO PUBLIC;
                     CREATE EXTENSION IF NOT EXISTS unaccent;
                     GRANT EXECUTE ON FUNCTION public.unaccent(text) TO PUBLIC;
+                    CREATE EXTENSION IF NOT EXISTS vector;
+                    CREATE EXTENSION IF NOT EXISTS timescaledb;
+                    CREATE EXTENSION IF NOT EXISTS vectorscale;
+                    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
                     SET search_path TO public, "' || current_user || '", pg_catalog;');
             END LOOP;
 END $$;
