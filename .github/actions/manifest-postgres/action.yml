@@ -1,0 +1,24 @@
+name: "Create Postgres multi-arch manifest"
+description: "Create and push multi-arch manifest for Postgres images"
+inputs:
+    versions:
+        description: "Space-separated versions (e.g., '17 18')"
+        required: true
+    image:
+        description: "Image name (e.g., ghcr.io/valksor/postgres)"
+        required: true
+runs:
+    using: "composite"
+    steps:
+        -   name: Create manifests
+            shell: bash
+            run: |
+                set -euo pipefail
+                for v in ${{ inputs.versions }}; do
+                    echo "::group::Creating manifest for ${v}"
+                    docker manifest create --amend "${{ inputs.image }}:${v}" \
+                        "${{ inputs.image }}:${v}-amd64" \
+                        "${{ inputs.image }}:${v}-arm64"
+                    docker manifest push "${{ inputs.image }}:${v}"
+                    echo "::endgroup::"
+                done

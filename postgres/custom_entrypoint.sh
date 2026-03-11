@@ -2,7 +2,7 @@
 
 set -eux
 
-docker-entrypoint.sh postgres &
+docker-entrypoint.sh postgres -c shared_preload_libraries=timescaledb &
 
 until psql -U "$POSTGRES_USER" -d postgres -c '\l'; do
 	echo "Waiting for PostgreSQL to start..."

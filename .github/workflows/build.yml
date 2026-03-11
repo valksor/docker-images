@@ -133,13 +133,14 @@ jobs:
                         ${{ env.OWNER }}/nginx:latest
                     no_cache: ${{ github.event.inputs.no_cache }}
 
-            -   name: build postgres (17..18)
+            -   name: build postgres arm64 (17..18)
                 if: contains(steps.plan.outputs.run_list, ' postgres ')
                 uses: ./.github/actions/build-postgres
                 with:
                     versions: "17 18"
                     dockerfile: postgres/Dockerfile
                     image: ${{ env.OWNER }}/postgres
+                    arch: arm64
                     no_cache: ${{ github.event.inputs.no_cache }}
 
             # -------------------------
@@ -368,8 +369,59 @@ jobs:
                         ${{ env.PHP_OWNER }}/fpm-testing-socket:latest
                     no_cache: ${{ github.event.inputs.no_cache }}
 
+    build-postgres-amd64:
+        runs-on: ubuntu-latest
+        if: contains(github.event.inputs.build_target, 'postgres') || (github.event.inputs.mode == 'chain' && contains('debian action-split nginx postgres', github.event.inputs.build_target))
+        steps:
+            -   name: checkout
+                uses: actions/checkout@v6
+
+            -   name: Login GHCR
+                uses: docker/login-action@v3
+                with:
+                    registry: ghcr.io
+                    username: ${{ github.repository_owner }}
+                    password: ${{ secrets.GITHUB_TOKEN }}
+
+            -   name: Login DockerHub
+                uses: docker/login-action@v3
+                with:
+                    registry: docker.io
+                    username: ${{ secrets.DH_USERNAME }}
+                    password: ${{ secrets.DH_TOKEN }}
+
+            -   name: build postgres amd64 (17..18)
+                uses: ./.github/actions/build-postgres
+                with:
+                    versions: "17 18"
+                    dockerfile: postgres/Dockerfile
+                    image: ${{ env.OWNER }}/postgres
+                    arch: amd64
+                    no_cache: ${{ github.event.inputs.no_cache }}
+
+    postgres-manifest:
+        needs: [build, build-postgres-amd64]
+        runs-on: self-arm
+        if: always() && (contains(github.event.inputs.build_target, 'postgres') || (github.event.inputs.mode == 'chain' && contains('debian action-split nginx postgres', github.event.inputs.build_target))) && needs.build.result == 'success' && needs.build-postgres-amd64.result == 'success'
+        steps:
+            -   name: checkout
+                uses: actions/checkout@v6
+
+            -   name: Login GHCR
+                uses: docker/login-action@v3
+                with:
+                    registry: ghcr.io
+                    username: ${{ github.repository_owner }}
+                    password: ${{ secrets.GITHUB_TOKEN }}
+
+            -   name: Create multi-arch manifests
+                uses: ./.github/actions/manifest-postgres
+                with:
+                    versions: "17 18"
+                    image: ${{ env.OWNER }}/postgres
+
     cleanup:
-        needs: build
+        needs: [build, build-postgres-amd64, postgres-manifest]
         runs-on: self-arm
         if: always()
         steps:

@@ -10,6 +10,9 @@ inputs:
     image:
         description: "Image name (e.g., ghcr.io/valksor/postgres)"
         required: true
+    arch:
+        description: "Target architecture (amd64 or arm64)"
+        required: true
     no_cache:
         description: "Use --no-cache"
         required: false
@@ -29,7 +32,7 @@ runs:
             run: |
                 set -euo pipefail
                 for v in ${{ inputs.versions }}; do
-                    echo "::group::Building ${v}"
-                    docker buildx build --file "${{ inputs.dockerfile }}" --push --provenance=true --sbom=true $([[ "${{ inputs.no_cache }}" == "true" ]] && echo "--no-cache") --build-arg VERSION="${v}" --build-arg CACHE_BUSTER="${{ github.run_id }}" --tag "${{ inputs.image }}:${v}"             .
+                    echo "::group::Building ${v}-${{ inputs.arch }}"
+                    docker buildx build --file "${{ inputs.dockerfile }}" --platform linux/${{ inputs.arch }} --push --provenance=false --sbom=false $([[ "${{ inputs.no_cache }}" == "true" ]] && echo "--no-cache") --build-arg VERSION="${v}" --build-arg CACHE_BUSTER="${{ github.run_id }}" --tag "${{ inputs.image }}:${v}-${{ inputs.arch }}" .
                     echo "::endgroup::"
                 done
