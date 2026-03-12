@@ -16,7 +16,8 @@ runs:
                 set -euo pipefail
                 for v in ${{ inputs.versions }}; do
                     echo "::group::Creating manifest for ${v}"
-                    docker manifest create --amend "${{ inputs.image }}:${v}" \
+                    docker manifest rm "${{ inputs.image }}:${v}" 2>/dev/null || true
+                    docker manifest create "${{ inputs.image }}:${v}" \
                         "${{ inputs.image }}:${v}-amd64" \
                         "${{ inputs.image }}:${v}-arm64"
                     docker manifest push "${{ inputs.image }}:${v}"
