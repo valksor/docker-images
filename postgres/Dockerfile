@@ -50,12 +50,24 @@ RUN     \
 &&      apt-get install -y --no-install-recommends --no-install-suggests \
             postgresql-contrib postgresql-${VERSION}-pgvector \
             timescaledb-2-postgresql-${VERSION} unzip \
+            postgresql-${VERSION}-partman \
+            postgresql-${VERSION}-cron \
+            postgresql-${VERSION}-squeeze \
+            postgresql-${VERSION}-hypopg \
+            postgresql-${VERSION}-age \
+            postgresql-${VERSION}-pgaudit \
+            postgresql-${VERSION}-plpgsql-check \
+            postgresql-${VERSION}-pgtap \
 &&      ARCH=$(dpkg --print-architecture) \
 &&      PGVECTORSCALE_VERSION=0.9.0 \
 &&      curl -fsSL -o /tmp/pgvectorscale.zip "https://github.com/timescale/pgvectorscale/releases/download/${PGVECTORSCALE_VERSION}/pgvectorscale-${PGVECTORSCALE_VERSION}-pg${VERSION}-${ARCH}.zip" \
 &&      unzip /tmp/pgvectorscale.zip -d /tmp/pgvectorscale \
 &&      dpkg -i /tmp/pgvectorscale/pgvectorscale-postgresql-${VERSION}_${PGVECTORSCALE_VERSION}-Linux_${ARCH}.deb \
 &&      rm -rf /tmp/pgvectorscale.zip /tmp/pgvectorscale \
+&&      PG_SEARCH_VERSION=0.22.2 \
+&&      curl -fsSL -o /tmp/pg_search.deb "https://github.com/paradedb/paradedb/releases/download/v${PG_SEARCH_VERSION}/postgresql-${VERSION}-pg-search_${PG_SEARCH_VERSION}-1PARADEDB-trixie_${ARCH}.deb" \
+&&      dpkg -i /tmp/pg_search.deb \
+&&      rm -f /tmp/pg_search.deb \
 &&      mkdir -p /backup \
 &&      chown -R postgres:postgres /backup \
 &&      mkdir -p /docker-entrypoint-initdb.d \

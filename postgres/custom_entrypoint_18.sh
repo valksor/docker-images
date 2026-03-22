@@ -2,7 +2,20 @@
 
 set -eux
 
-docker-entrypoint.sh postgres -c shared_preload_libraries=timescaledb &
+cleanup() {
+	kill -TERM "$PG_PID" 2>/dev/null || true
+	wait "$PG_PID"
+}
+trap cleanup SIGTERM SIGINT
+
+# Configure shared_preload_libraries for extensions that need startup loading.
+# timescaledb must be first; pg_cron, pg_partman_bgw, pgaudit, age, pg_squeeze are order-independent.
+export POSTGRES_INITDB_ARGS="${POSTGRES_INITDB_ARGS:-} --set shared_preload_libraries='timescaledb,pg_cron,pg_partman_bgw,pgaudit,age,pg_squeeze'"
+
+docker-entrypoint.sh postgres \
+	-c shared_preload_libraries='timescaledb,pg_cron,pg_partman_bgw,pgaudit,age,pg_squeeze' \
+	-c cron.database_name="${POSTGRES_DB:-postgres}" &
+PG_PID=$!
 
 until psql -U "$POSTGRES_USER" -d postgres -c '\l'; do
 	echo "Waiting for PostgreSQL to start..."
@@ -20,4 +33,4 @@ if [ ! -f /var/lib/postgresql/18/docker/.extensions_installed ]; then
 	touch /var/lib/postgresql/18/docker/.extensions_installed
 fi
 
-wait
+wait "$PG_PID"

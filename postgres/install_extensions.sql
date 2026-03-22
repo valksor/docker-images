@@ -18,7 +18,24 @@ CREATE EXTENSION IF NOT EXISTS vectorscale WITH SCHEMA public;
 
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
-ALTER DATABASE template1 SET search_path TO public, "$POSTGRES_USER", pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA public;
+
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+CREATE EXTENSION IF NOT EXISTS pg_squeeze;
+
+CREATE EXTENSION IF NOT EXISTS hypopg WITH SCHEMA public;
+
+CREATE EXTENSION IF NOT EXISTS age;
+ALTER DATABASE postgres SET search_path TO ag_catalog, public, "$user", pg_catalog;
+
+CREATE EXTENSION IF NOT EXISTS pgaudit;
+
+CREATE EXTENSION IF NOT EXISTS plpgsql_check WITH SCHEMA public;
+
+CREATE EXTENSION IF NOT EXISTS pgtap;
+
+CREATE EXTENSION IF NOT EXISTS pg_search;
 
 \c template1;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
@@ -30,9 +47,18 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS vectorscale WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pg_squeeze;
+CREATE EXTENSION IF NOT EXISTS hypopg WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS age;
+CREATE EXTENSION IF NOT EXISTS pgaudit;
+CREATE EXTENSION IF NOT EXISTS plpgsql_check WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS pgtap;
+CREATE EXTENSION IF NOT EXISTS pg_search;
+ALTER DATABASE template1 SET search_path TO ag_catalog, public, "$user", pg_catalog;
 
 \c postgres;
-SET search_path TO public, "$POSTGRES_USER", pg_catalog;
+SET search_path TO ag_catalog, public, "$POSTGRES_USER", pg_catalog;
 
 DO $$
     DECLARE
@@ -51,6 +77,14 @@ DO $$
                     CREATE EXTENSION IF NOT EXISTS timescaledb;
                     CREATE EXTENSION IF NOT EXISTS vectorscale;
                     CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-                    SET search_path TO public, "' || current_user || '", pg_catalog;');
+                    CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA public;
+                    CREATE EXTENSION IF NOT EXISTS pg_squeeze;
+                    CREATE EXTENSION IF NOT EXISTS hypopg SCHEMA public;
+                    CREATE EXTENSION IF NOT EXISTS age;
+                    CREATE EXTENSION IF NOT EXISTS pgaudit;
+                    CREATE EXTENSION IF NOT EXISTS plpgsql_check SCHEMA public;
+                    CREATE EXTENSION IF NOT EXISTS pgtap;
+                    CREATE EXTENSION IF NOT EXISTS pg_search;
+                    SET search_path TO ag_catalog, public, "' || current_user || '", pg_catalog;');
             END LOOP;
 END $$;
