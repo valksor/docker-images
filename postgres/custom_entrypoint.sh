@@ -17,13 +17,28 @@ docker-entrypoint.sh postgres \
 	-c cron.database_name="${POSTGRES_DB:-postgres}" &
 PG_PID=$!
 
+MAX_RETRIES=30
+RETRY=0
 until psql -U "$POSTGRES_USER" -d postgres -c '\l'; do
-	echo "Waiting for PostgreSQL to start..."
+	if ! kill -0 "$PG_PID" 2>/dev/null; then
+		echo "ERROR: PostgreSQL process has died. Check logs above for details."
+		exit 1
+	fi
+	RETRY=$((RETRY + 1))
+	if [ "$RETRY" -ge "$MAX_RETRIES" ]; then
+		echo "ERROR: PostgreSQL failed to start after $MAX_RETRIES attempts."
+		exit 1
+	fi
+	echo "Waiting for PostgreSQL to start... (attempt $RETRY/$MAX_RETRIES)"
 	sleep 2
 done
 
 until psql -U "$POSTGRES_USER" -d template1 -c 'SELECT 1'; do
-	echo "Waiting for PostgreSQL to start..."
+	if ! kill -0 "$PG_PID" 2>/dev/null; then
+		echo "ERROR: PostgreSQL process has died."
+		exit 1
+	fi
+	echo "Waiting for template1..."
 	sleep 2
 done
 
