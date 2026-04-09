@@ -36,6 +36,7 @@ permissions:
 env:
     OWNER: ghcr.io/valksor
     PHP_OWNER: ghcr.io/valksor/php
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
     plan:
