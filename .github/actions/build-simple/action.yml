@@ -14,6 +14,10 @@ inputs:
         description: "Use --no-cache"
         required: false
         default: "false"
+    arch:
+        description: "Target architecture (amd64 or arm64). When set, builds single-arch with attestations disabled so tags can be combined into a multi-arch manifest downstream. When empty, builds for the native platform with attestations enabled."
+        required: false
+        default: ""
 runs:
     using: "composite"
     steps:
@@ -22,7 +26,8 @@ runs:
             with:
                 driver-opts: image=moby/buildkit:buildx-stable-1-rootless
 
-        -   name: Build & push
+        -   name: Build & push (native, with attestations)
+            if: inputs.arch == ''
             uses: docker/build-push-action@v6
             with:
                 context: .
@@ -33,6 +38,48 @@ runs:
                 no-cache: ${{ inputs.no_cache == 'true' }}
                 tags: ${{ inputs.tags }}
                 build-args: ${{ inputs.build-args }}
+
+        -   name: Build & push (multi-arch, attestations disabled)
+            if: inputs.arch != ''
+            shell: bash
+            env:
+                INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
+                INPUT_ARCH: ${{ inputs.arch }}
+                INPUT_TAGS: ${{ inputs.tags }}
+                INPUT_BUILD_ARGS: ${{ inputs.build-args }}
+                INPUT_NO_CACHE: ${{ inputs.no_cache }}
+            run: |
+                set -euo pipefail
+
+                tag_flags=()
+                while IFS= read -r tag; do
+                    tag="$(echo "$tag" | xargs)"
+                    [[ -z "$tag" ]] && continue
+                    tag_flags+=(--tag "$tag")
+                done <<< "$INPUT_TAGS"
+
+                build_arg_flags=()
+                while IFS= read -r arg; do
+                    arg="$(echo "$arg" | xargs)"
+                    [[ -z "$arg" ]] && continue
+                    build_arg_flags+=(--build-arg "$arg")
+                done <<< "$INPUT_BUILD_ARGS"
+
+                no_cache_flag=()
+                if [[ "$INPUT_NO_CACHE" == "true" ]]; then
+                    no_cache_flag+=(--no-cache)
+                fi
+
+                docker buildx build \
+                    --file "$INPUT_DOCKERFILE" \
+                    --platform "linux/$INPUT_ARCH" \
+                    --push \
+                    --provenance=false \
+                    --sbom=false \
+                    "${no_cache_flag[@]}" \
+                    "${build_arg_flags[@]}" \
+                    "${tag_flags[@]}" \
+                    .
 
         -   name: Pull built images
             shell: bash

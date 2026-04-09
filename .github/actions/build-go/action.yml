@@ -14,6 +14,9 @@ inputs:
         description: "Use --no-cache"
         required: false
         default: "false"
+    arch:
+        description: "Target architecture (amd64 or arm64)"
+        required: true
 runs:
     using: "composite"
     steps:
@@ -21,12 +24,13 @@ runs:
             uses: ./.github/actions/download-go
             with:
                 version: ${{ inputs.version }}
-                arch: arm64
+                arch: ${{ inputs.arch }}
 
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile }}
                 tags: ${{ inputs.tags }}
+                arch: ${{ inputs.arch }}
                 build-args: |
                     GO_VERSION=${{ steps.download.outputs.go_version }}
                     GO_ROOT=go-root-${{ inputs.version }}

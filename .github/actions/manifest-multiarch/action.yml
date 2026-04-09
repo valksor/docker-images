@@ -1,0 +1,27 @@
+name: "Create multi-arch manifest"
+description: "Combine -amd64 and -arm64 arch-suffixed tags into a single multi-arch manifest"
+inputs:
+    image:
+        description: "Image name (e.g., ghcr.io/valksor/debian)"
+        required: true
+    tag:
+        description: "Target tag (e.g., latest). The per-arch sources must already exist as ${image}:${tag}-amd64 and ${image}:${tag}-arm64."
+        required: true
+runs:
+    using: "composite"
+    steps:
+        -   name: Create manifest
+            shell: bash
+            env:
+                INPUT_IMAGE: ${{ inputs.image }}
+                INPUT_TAG: ${{ inputs.tag }}
+            run: |
+                set -euo pipefail
+                ref="${INPUT_IMAGE}:${INPUT_TAG}"
+                echo "::group::Creating manifest for ${ref}"
+                docker manifest rm "${ref}" 2>/dev/null || true
+                docker manifest create "${ref}" \
+                    "${ref}-amd64" \
+                    "${ref}-arm64"
+                docker manifest push "${ref}"
+                echo "::endgroup::"
