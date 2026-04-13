@@ -206,12 +206,12 @@ jobs:
     # -------------------------
 
     go-build:
-        needs: [plan, postgres-manifest]
+        needs: [plan, postgres-build, postgres-manifest]
         if: |
             always()
             && contains(needs.plan.outputs.run_list, ' go ')
-            && needs.postgres-manifest.result != 'failure'
-            && needs.postgres-manifest.result != 'cancelled'
+            && (needs.postgres-build.result == 'success' || needs.postgres-build.result == 'skipped')
+            && (needs.postgres-manifest.result == 'success' || needs.postgres-manifest.result == 'skipped')
         strategy:
             fail-fast: false
             matrix:
@@ -271,13 +271,13 @@ jobs:
     # -------------------------
 
     arm-only-build:
-        needs: [plan, go-manifest]
+        needs: [plan, go-build, go-manifest]
         runs-on: self-arm
         if: |
             always()
             && needs.plan.outputs.arm_only_needed == 'true'
-            && needs.go-manifest.result != 'failure'
-            && needs.go-manifest.result != 'cancelled'
+            && (needs.go-build.result == 'success' || needs.go-build.result == 'skipped')
+            && (needs.go-manifest.result == 'success' || needs.go-manifest.result == 'skipped')
         steps:
             -   name: checkout
                 uses: actions/checkout@v6
