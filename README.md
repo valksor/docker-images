@@ -72,7 +72,7 @@ ghcr.io/valksor/php/franken:master
 | Image | Key Features | Use Case |
 |-------|--------------|----------|
 | **Nginx** | Brotli compression, optimized config | Web server, reverse proxy |
-| **PostgreSQL** | Versions 17 & 18, backup scripts | Production database |
+| **PostgreSQL** | Version 18, backup scripts | Production database |
 
 ### Utilities
 | Image | Key Features | Use Case |
@@ -350,7 +350,7 @@ All images are built for:
 ### Tagging Strategy
 - `latest` - Most recent stable version (PHP 8.5.0-dev)
 - `master` - PHP 8.6.0-dev development branch
-- `17`, `18` - PostgreSQL major versions
+- `18` - PostgreSQL major version
 
 ### Pull Examples
 
@@ -382,7 +382,6 @@ docker pull ghcr.io/valksor/php/franken:master
 
 # Web Services
 docker pull ghcr.io/valksor/nginx:latest
-docker pull ghcr.io/valksor/postgres:17
 docker pull ghcr.io/valksor/postgres:18
 
 # Utilities

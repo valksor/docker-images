@@ -51,10 +51,10 @@ until psql -U "$POSTGRES_USER" -d template1 -c 'SELECT 1'; do
 	sleep 2
 done
 
-if [ ! -f /var/lib/postgresql/data/.extensions_installed ]; then
+if [ ! -f /var/lib/postgresql/18/docker/.extensions_installed ]; then
 	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -f /install_extensions.sql
 
-	touch /var/lib/postgresql/data/.extensions_installed
+	touch /var/lib/postgresql/18/docker/.extensions_installed
 fi
 
 # Sync installed extensions to the binary versions shipped in this image. Runs

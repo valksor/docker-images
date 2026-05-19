@@ -176,7 +176,7 @@ jobs:
             -   name: build postgres
                 uses: ./.github/actions/build-postgres
                 with:
-                    versions: "17 18"
+                    versions: "18"
                     dockerfile: postgres/Dockerfile
                     image: ${{ env.OWNER }}/postgres
                     arch: ${{ matrix.arch }}
@@ -198,7 +198,7 @@ jobs:
             -   name: manifest postgres
                 uses: ./.github/actions/manifest-postgres
                 with:
-                    versions: "17 18"
+                    versions: "18"
                     image: ${{ env.OWNER }}/postgres
 
     # -------------------------

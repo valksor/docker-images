@@ -2,7 +2,7 @@ name: "Build Postgres images"
 description: "Build and push multiple Postgres versions"
 inputs:
     versions:
-        description: "Space-separated versions (e.g., '17 18')"
+        description: "Space-separated versions (e.g., '18')"
         required: true
     dockerfile:
         description: "Dockerfile path"
