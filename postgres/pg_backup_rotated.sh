@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-set -eux
+# No `-x`: this script exports PGPASSWORD, and xtrace would print it to logs.
+# pipefail is toggled locally around the dump pipelines below.
+set -eu
 
 # https://wiki.postgresql.org/wiki/Automated_Backup_on_Linux
 # Modified for flexible full backups based on FULL_BACKUP_LIST
@@ -39,6 +41,7 @@ else  # Use default config file in current directory
 	fi
 fi
 
+# shellcheck source=/dev/null
 source "$CONFIG_FILE_PATH"
 
 export PGPASSWORD=$POSTGRES_PASSWORD
@@ -66,7 +69,7 @@ USERNAME="${USERNAME:-postgres}"
 
 perform_backups() {
 	SUFFIX="$1"
-	FINAL_BACKUP_DIR="$BACKUP_DIR$(date +\%Y-\%m-\%d)$SUFFIX/"
+	FINAL_BACKUP_DIR="$BACKUP_DIR$(date +%Y-%m-%d)$SUFFIX/"
 
 	echo "Making backup directory in $FINAL_BACKUP_DIR"
 
@@ -86,7 +89,7 @@ perform_backups() {
 		echo "Globals backup"
 
 		set -o pipefail
-		if ! pg_dumpall -g -h "$HOSTNAME" -U "$USERNAME" <<< "$POSTGRES_PASSWORD" | gzip > "$FINAL_BACKUP_DIR"globals.sql.gz.in_progress; then
+		if ! pg_dumpall -g -h "$HOSTNAME" -U "$USERNAME" | gzip > "$FINAL_BACKUP_DIR"globals.sql.gz.in_progress; then
 			echo "[!!ERROR!!] Failed to produce globals backup" >&2
 		else
 			mv "$FINAL_BACKUP_DIR"globals.sql.gz.in_progress "$FINAL_BACKUP_DIR"globals.sql.gz
@@ -112,7 +115,7 @@ perform_backups() {
 			echo "Full backup of $DATABASE"
 
 			set -o pipefail
-			if ! pg_dump -Fp -h "$HOSTNAME" -U "$USERNAME" "$DATABASE" <<< "$POSTGRES_PASSWORD" | gzip > "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress"; then
+			if ! pg_dump -Fp -h "$HOSTNAME" -U "$USERNAME" "$DATABASE" | gzip > "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress"; then
 				echo "[!!ERROR!!] Failed to produce plain backup database $DATABASE" >&2
 			else
 				mv "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress" "$FINAL_BACKUP_DIR$DATABASE.sql.gz"
@@ -126,7 +129,7 @@ perform_backups() {
 			echo "Full backup of $DATABASE"
 
 			set -o pipefail
-			if ! pg_dump -Fp -h "$HOSTNAME" -U "$USERNAME" "$DATABASE" <<< "$POSTGRES_PASSWORD" | gzip > "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress"; then
+			if ! pg_dump -Fp -h "$HOSTNAME" -U "$USERNAME" "$DATABASE" | gzip > "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress"; then
 				echo "[!!ERROR!!] Failed to produce plain backup database $DATABASE" >&2
 			else
 				mv "$FINAL_BACKUP_DIR$DATABASE.sql.gz.in_progress" "$FINAL_BACKUP_DIR$DATABASE.sql.gz"
@@ -154,7 +157,7 @@ fi
 # WEEKLY BACKUPS
 
 DAY_OF_WEEK=$(date +%u) # 1-7 (Monday-Sunday)
-EXPIRED_DAYS=$((($WEEKS_TO_KEEP * 7) + 1))
+EXPIRED_DAYS=$(((WEEKS_TO_KEEP * 7) + 1))
 
 if [[ "$DAY_OF_WEEK" == "$DAY_OF_WEEK_TO_KEEP" ]]; then  # Use == for string comparison within [[ ]]
 	# Delete all expired weekly directories

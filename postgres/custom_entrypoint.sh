@@ -2,9 +2,21 @@
 
 set -eux
 
+# The official entrypoint only defaults POSTGRES_USER inside its own (backgrounded)
+# process, so this parent shell would hit an unbound variable under `set -u` when the
+# caller doesn't pass POSTGRES_USER. Default it here so every psql below is safe.
+: "${POSTGRES_USER:=postgres}"
+export POSTGRES_USER
+
+# Marker lives in the data dir so it persists across restarts; derive it from PGDATA
+# rather than hardcoding a major-version path.
+EXTENSIONS_MARKER="${PGDATA:-/var/lib/postgresql/18/docker}/.extensions_installed"
+
+PG_PID=
 cleanup() {
+	[ -n "$PG_PID" ] || return 0
 	kill -TERM "$PG_PID" 2>/dev/null || true
-	wait "$PG_PID"
+	wait "$PG_PID" 2>/dev/null || true
 }
 trap cleanup SIGTERM SIGINT
 
@@ -51,10 +63,10 @@ until psql -U "$POSTGRES_USER" -d template1 -c 'SELECT 1'; do
 	sleep 2
 done
 
-if [ ! -f /var/lib/postgresql/18/docker/.extensions_installed ]; then
+if [ ! -f "$EXTENSIONS_MARKER" ]; then
 	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -f /install_extensions.sql
 
-	touch /var/lib/postgresql/18/docker/.extensions_installed
+	touch "$EXTENSIONS_MARKER"
 fi
 
 # Sync installed extensions to the binary versions shipped in this image. Runs

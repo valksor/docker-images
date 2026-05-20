@@ -2,6 +2,7 @@
 
 set -eu
 
+# shellcheck disable=SC2153  # REPO/BRANCH/GH_TOKEN are provided via the environment
 source_repository=https://${GH_TOKEN}@github.com/${REPO}.git
 source_branch=${BRANCH}
 
@@ -21,20 +22,21 @@ else
     exit 1
 fi
 
-while IFS== read -r path repo; do
+while IFS='=' read -r path repo; do
     components["$path"]="$repo"
 done < <(jq -r '.[] | .path + "=" + .repo ' "${json_source}")
 
 for K in "${!components[@]}"; do
     temp_remote=${components[$K]//GH_TOKEN@/${GH_TOKEN}@}
-    echo -e "\n${temp_remote}\n"
+    # Log the target without the substituted token (the placeholder form is safe).
+    echo -e "\nSplitting '${K}' -> ${components[$K]}\n"
     # The rest shouldn't need changing.
     temp_repo=$(mktemp -d)
     # shellcheck disable=SC2002
     temp_branch=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 8 ; echo '')
 
     # Checkout the old repository, make it safe and checkout a temp branch
-    git clone ${source_repository} "${temp_repo}"
+    git clone "${source_repository}" "${temp_repo}"
     cd "${temp_repo}"
     git checkout "${source_branch}"
     git remote remove origin

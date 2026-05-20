@@ -19,8 +19,6 @@ LABEL org.opencontainers.image.title="Valksor Nginx" \
 
 COPY    global/01_nodoc  /etc/dpkg/dpkg.cfg.d/01_nodoc
 COPY    global/02_nocache /etc/apt/apt.conf.d/02_nocache
-COPY    global/compress  /etc/initramfs-tools/conf.d/compress
-COPY    global/modules   /etc/initramfs-tools/conf.d/modules
 COPY    global/90parallel   /etc/apt/apt.conf.d/90parallel
 
 USER    root
@@ -41,7 +39,7 @@ RUN     \
 &&      apt-get update \
 &&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --no-install-suggests \
-            bash procps telnet iputils-ping build-essential libpcre2-dev zlib1g-dev libssl-dev git wget cmake ca-certificates \
+            bash procps telnet iputils-ping build-essential libpcre2-dev zlib1g-dev libssl-dev git wget cmake ca-certificates libcap2-bin \
 &&      update-ca-certificates \
 &&      find /usr/local/bin /usr/bin /bin /sbin -type f \
             -a \( -perm -4000 -o -perm -2000 \) \
@@ -61,10 +59,12 @@ RUN     \
 &&      eval "./configure $(cat /tmp/nginx_args) --with-compat --add-dynamic-module=../ngx_brotli" \
 &&      make modules \
 &&      cp objs/ngx_http_brotli_*.so /etc/nginx/modules/ \
+&&      setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx \
 &&      cd / && rm -rf /tmp/* \
-&&      apt-get purge -y build-essential libpcre2-dev zlib1g-dev libssl-dev git wget cmake \
+&&      apt-get purge -y build-essential libpcre2-dev zlib1g-dev libssl-dev git wget cmake libcap2-bin \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
 &&      apt-get autoremove -y --purge \
+&&      find /usr/share/doc -type f ! -name copyright -delete \
 &&      rm -rf \
             /etc/nginx/conf.d/* \
             /home/valksor/*.deb \
@@ -76,7 +76,6 @@ RUN     \
             /tmp/* \
             /var/tmp/* \
             /usr/share/man \
-            /usr/share/doc \
             /usr/share/info \
             /usr/share/groff \
             /usr/share/locale/?? \
@@ -94,8 +93,6 @@ RUN     \
 &&      chown -R valksor:valksor /etc/nginx/conf.d \
 &&      chown -R valksor:valksor /etc/nginx/stream.d \
 &&      chown -R valksor:valksor /etc/nginx/modules \
-&&      touch /var/run/nginx.pid \
-&&      chown -R valksor:valksor /var/run/nginx.pid \
 &&      usermod -a -G dialout valksor \
 &&      ls -la /etc/nginx/modules/
 
