@@ -21,8 +21,6 @@ ENV     container=docker \
 
 COPY    global/01_nodoc   /etc/dpkg/dpkg.cfg.d/01_nodoc
 COPY    global/02_nocache /etc/apt/apt.conf.d/02_nocache
-COPY    global/compress   /etc/initramfs-tools/conf.d/compress
-COPY    global/modules    /etc/initramfs-tools/conf.d/modules
 COPY    global/90parallel /etc/apt/apt.conf.d/90parallel
 
 ARG     POSTGRES_LOCALE=en_US
@@ -44,8 +42,9 @@ RUN     \
 &&      apt-get upgrade -y \
 &&      apt-get install -y --no-install-recommends --no-install-suggests \
             curl gnupg lsb-release ca-certificates \
-&&      echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/timescaledb.list \
-&&      curl -fsSL https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor -o /etc/apt/trusted.gpg.d/timescaledb.gpg \
+&&      mkdir -p /etc/apt/keyrings \
+&&      curl -fsSL https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor -o /etc/apt/keyrings/timescaledb.gpg \
+&&      echo "deb [signed-by=/etc/apt/keyrings/timescaledb.gpg] https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/timescaledb.list \
 &&      apt-get update \
 &&      apt-get install -y --no-install-recommends --no-install-suggests \
             postgresql-contrib postgresql-${VERSION}-pgvector \
@@ -79,6 +78,7 @@ RUN     \
             -a ! -name 'su' -a ! -name 'sudo' -a ! -name 'passwd' -a ! -name 'gpasswd' \
             -exec chmod -s {} \; \
 &&      apt-get autoremove -y --purge \
+&&      find /usr/share/doc -type f ! -name copyright -delete \
 &&      rm -rf \
             /*.deb \
             /var/cache/apt/* \
@@ -88,7 +88,6 @@ RUN     \
             /tmp/* \
             /var/tmp/* \
             /usr/share/man \
-            /usr/share/doc \
             /usr/share/info \
             /usr/share/groff \
             /usr/share/locale/?? \

@@ -33,7 +33,15 @@ runs:
                 fi
                 echo "GO_VERSION=$GO_VERSION" >> $GITHUB_OUTPUT
 
+                # Expected checksum, published alongside the file in the same json.
+                SHA256=$(echo "$JSON" | grep -F -A6 "\"${FILENAME}\"" | grep '"sha256"' | head -1 | cut -d'"' -f4)
+                [ -n "$FILENAME" ] || { echo "Could not determine Go tarball filename"; exit 1; }
+                [ -n "$SHA256" ] || { echo "Could not determine sha256 for ${FILENAME}"; exit 1; }
+
                 URL="https://go.dev/dl/${FILENAME}"
 
                 mkdir -p go-root-${{ inputs.version }}
-                curl -sSL "$URL" | tar -xz -C go-root-${{ inputs.version }}
+                curl -fSL "$URL" -o /tmp/go.tar.gz
+                echo "${SHA256}  /tmp/go.tar.gz" | sha256sum -c -
+                tar -xzf /tmp/go.tar.gz -C go-root-${{ inputs.version }}
+                rm -f /tmp/go.tar.gz
