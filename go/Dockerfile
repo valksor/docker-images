@@ -24,6 +24,8 @@ RUN \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends make g++ gcc libc6-dev \
     && apt-get autoremove -y \
+    # Strip docs but keep copyright files for license compliance \
+    && find /usr/share/doc -type f ! -name copyright -delete \
     && rm -rf \
         /var/cache/apt/* \
         /var/lib/apt/lists/* \
@@ -32,7 +34,6 @@ RUN \
         /tmp/* \
         /var/tmp/* \
         /usr/share/man \
-        /usr/share/doc \
         /usr/share/info \
         /usr/share/groff \
         /usr/share/locale/?? \

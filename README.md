@@ -328,7 +328,7 @@ All images are built for:
 - `linux/arm64` (ARM64/Apple Silicon)
 
 ### Security Hardened
-- **Non-root user**: Containers run as `valksor` user (UID/GID 1000)
+- **Non-root user**: Most containers run as the `valksor` user (UID/GID 1000); service images run as their dedicated user (e.g. PostgreSQL runs as `postgres`, starting as root only to drop privileges via gosu)
 - **Minimal attack surface**: Only necessary binaries and libraries included
 - **Regular updates**: Built from latest security patches
 

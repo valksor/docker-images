@@ -58,7 +58,7 @@ CREATE EXTENSION IF NOT EXISTS pg_search;
 ALTER DATABASE template1 SET search_path TO ag_catalog, public, "$user", pg_catalog;
 
 \c postgres;
-SET search_path TO ag_catalog, public, "$POSTGRES_USER", pg_catalog;
+SET search_path TO ag_catalog, public, "$user", pg_catalog;
 
 DO $$
     DECLARE

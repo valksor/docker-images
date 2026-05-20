@@ -17,8 +17,6 @@ LABEL org.opencontainers.image.title="Valksor Debian Base" \
 
 COPY global/01_nodoc /etc/dpkg/dpkg.cfg.d/01_nodoc
 COPY global/02_nocache /etc/apt/apt.conf.d/02_nocache
-COPY global/compress /etc/initramfs-tools/conf.d/compress
-COPY global/modules /etc/initramfs-tools/conf.d/modules
 COPY global/90parallel /etc/apt/apt.conf.d/90parallel
 
 COPY --chmod=0755 global/wait-for-it.sh /usr/local/bin/wait-for-it
@@ -51,6 +49,8 @@ RUN \
         -exec chmod -s {} \; \
     # Comprehensive cleanup \
     && apt-get autoremove -y \
+    # Strip docs but keep copyright files for license compliance \
+    && find /usr/share/doc -type f ! -name copyright -delete \
     && rm -rf \
         /var/cache/apt/* \
         /var/lib/apt/lists/* \
@@ -59,7 +59,6 @@ RUN \
         /tmp/* \
         /var/tmp/* \
         /usr/share/man \
-        /usr/share/doc \
         /usr/share/info \
         /usr/share/groff \
         /usr/share/locale/?? \
