@@ -33,6 +33,13 @@ permissions:
     contents: read
     packages: write
 
+# A re-dispatch of the same mode+target on the same branch supersedes (cancels) the
+# in-progress run. Different targets/modes on the same branch run independently, so
+# parallel manual builds of distinct images are not killed by each other.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.mode }}-${{ github.event.inputs.build_target }}
+    cancel-in-progress: true
+
 env:
     OWNER: ghcr.io/valksor
     PHP_OWNER: ghcr.io/valksor/php
@@ -100,7 +107,9 @@ jobs:
 
     debian:
         needs: plan
-        if: contains(needs.plan.outputs.run_list, ' debian ')
+        # NOTE: a single-line condition starting with !cancelled() must be ${{ }}-wrapped —
+        # a bare leading "!" is read as a YAML tag. The "if: |" block-scalar forms below are exempt.
+        if: ${{ !cancelled() && contains(needs.plan.outputs.run_list, ' debian ') }}
         uses: ./.github/workflows/_multiarch-image.yml
         with:
             dockerfile: debian/Dockerfile
@@ -113,7 +122,7 @@ jobs:
     action-split:
         needs: [plan, debian]
         if: |
-            always()
+            !cancelled()
             && contains(needs.plan.outputs.run_list, ' action-split ')
             && needs.debian.result != 'failure'
             && needs.debian.result != 'cancelled'
@@ -127,7 +136,7 @@ jobs:
     nginx:
         needs: [plan, action-split]
         if: |
-            always()
+            !cancelled()
             && contains(needs.plan.outputs.run_list, ' nginx ')
             && needs.action-split.result != 'failure'
             && needs.action-split.result != 'cancelled'
@@ -145,7 +154,7 @@ jobs:
     postgres-build:
         needs: [plan, nginx]
         if: |
-            always()
+            !cancelled()
             && contains(needs.plan.outputs.run_list, ' postgres ')
             && needs.nginx.result != 'failure'
             && needs.nginx.result != 'cancelled'
@@ -185,7 +194,7 @@ jobs:
     postgres-manifest:
         needs: [plan, postgres-build]
         runs-on: self-data
-        if: always() && needs.postgres-build.result == 'success'
+        if: ${{ !cancelled() && needs.postgres-build.result == 'success' }}
         steps:
             -   name: checkout
                 uses: actions/checkout@v6
@@ -208,7 +217,7 @@ jobs:
     go-build:
         needs: [plan, postgres-build, postgres-manifest]
         if: |
-            always()
+            !cancelled()
             && contains(needs.plan.outputs.run_list, ' go ')
             && (needs.postgres-build.result == 'success' || needs.postgres-build.result == 'skipped')
             && (needs.postgres-manifest.result == 'success' || needs.postgres-manifest.result == 'skipped')
@@ -249,7 +258,7 @@ jobs:
     go-manifest:
         needs: [plan, go-build]
         runs-on: self-data
-        if: always() && needs.go-build.result == 'success'
+        if: ${{ !cancelled() && needs.go-build.result == 'success' }}
         steps:
             -   name: checkout
                 uses: actions/checkout@v6
@@ -274,7 +283,7 @@ jobs:
         needs: [plan, go-build, go-manifest]
         runs-on: self-data
         if: |
-            always()
+            !cancelled()
             && needs.plan.outputs.arm_only_needed == 'true'
             && (needs.go-build.result == 'success' || needs.go-build.result == 'skipped')
             && (needs.go-manifest.result == 'success' || needs.go-manifest.result == 'skipped')
@@ -506,6 +515,7 @@ jobs:
             - go-manifest
             - arm-only-build
         runs-on: self-data
+        # intentional always(): teardown (prune + workspace clean) must run even on cancel/failure
         if: always()
         steps:
             -   name: cleanup
