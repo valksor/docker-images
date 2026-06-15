@@ -37,7 +37,7 @@ jobs:
             matrix:
                 include:
                     -   arch: arm64
-                        runs-on: self-arm
+                        runs-on: self-data
                     -   arch: amd64
                         runs-on: ubuntu-latest
         runs-on: ${{ matrix.runs-on }}
@@ -71,7 +71,7 @@ jobs:
 
     manifest:
         needs: build
-        runs-on: self-arm
+        runs-on: self-data
         if: always() && needs.build.result == 'success'
         steps:
             -   name: checkout

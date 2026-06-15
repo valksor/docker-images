@@ -40,7 +40,7 @@ env:
 
 jobs:
     plan:
-        runs-on: self-arm
+        runs-on: self-data
         outputs:
             run_list: ${{ steps.plan.outputs.run_list }}
             arm_only_needed: ${{ steps.plan.outputs.arm_only_needed }}
@@ -154,7 +154,7 @@ jobs:
             matrix:
                 include:
                     -   arch: arm64
-                        runs-on: self-arm
+                        runs-on: self-data
                     -   arch: amd64
                         runs-on: ubuntu-latest
         runs-on: ${{ matrix.runs-on }}
@@ -184,7 +184,7 @@ jobs:
 
     postgres-manifest:
         needs: [plan, postgres-build]
-        runs-on: self-arm
+        runs-on: self-data
         if: always() && needs.postgres-build.result == 'success'
         steps:
             -   name: checkout
@@ -217,7 +217,7 @@ jobs:
             matrix:
                 include:
                     -   arch: arm64
-                        runs-on: self-arm
+                        runs-on: self-data
                     -   arch: amd64
                         runs-on: ubuntu-latest
         runs-on: ${{ matrix.runs-on }}
@@ -248,7 +248,7 @@ jobs:
 
     go-manifest:
         needs: [plan, go-build]
-        runs-on: self-arm
+        runs-on: self-data
         if: always() && needs.go-build.result == 'success'
         steps:
             -   name: checkout
@@ -272,7 +272,7 @@ jobs:
 
     arm-only-build:
         needs: [plan, go-build, go-manifest]
-        runs-on: self-arm
+        runs-on: self-data
         if: |
             always()
             && needs.plan.outputs.arm_only_needed == 'true'
@@ -505,7 +505,7 @@ jobs:
             - go-build
             - go-manifest
             - arm-only-build
-        runs-on: self-arm
+        runs-on: self-data
         if: always()
         steps:
             -   name: cleanup
