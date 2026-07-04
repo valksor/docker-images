@@ -3,7 +3,12 @@
 set -eu
 
 # shellcheck disable=SC2153  # REPO/BRANCH/GH_TOKEN are provided via the environment
-source_repository=https://${GH_TOKEN}@github.com/${REPO}.git
+# GH_TOKEN is optional; when set it authenticates the source clone.
+if [[ -n "${GH_TOKEN:-}" ]]; then
+    source_repository="https://${GH_TOKEN}@github.com/${REPO}.git"
+else
+    source_repository="https://github.com/${REPO}.git"
+fi
 source_branch=${BRANCH}
 
 typeset -A components
@@ -26,9 +31,50 @@ while IFS='=' read -r path repo; do
     components["$path"]="$repo"
 done < <(jq -r '.[] | .path + "=" + .repo ' "${json_source}")
 
+# Pre-flight: validate every env placeholder (NAME@) referenced by any component
+# before touching git, so we never force-push some destinations and then abort on
+# a later missing env. Aggregate all problems into one actionable error.
+missing=()
+denied=()
 for K in "${!components[@]}"; do
-    temp_remote=${components[$K]//GH_TOKEN@/${GH_TOKEN}@}
-    # Log the target without the substituted token (the placeholder form is safe).
+    while read -r match; do
+        [[ -z "$match" ]] && continue
+        name="${match%@}"
+        # Optional allowlist of substitutable env names.
+        if [[ -n "${ALLOWED_ENVS:-}" ]]; then
+            case " ${ALLOWED_ENVS} " in
+                *" ${name} "*) : ;;
+                *) denied+=("component '${K}' references \$${name} (not in ALLOWED_ENVS)"); continue ;;
+            esac
+        fi
+        if [[ ! -v "$name" || -z "${!name}" ]]; then
+            missing+=("component '${K}' requires \$${name}")
+        fi
+    done < <(grep -oE '[A-Za-z_][A-Za-z0-9_]*@' <<< "${components[$K]}" | sort -u)
+done
+if (( ${#denied[@]} + ${#missing[@]} )); then
+    echo "Cannot resolve component env placeholders:" >&2
+    printf '  - %s\n' "${denied[@]}" "${missing[@]}" >&2
+    echo "Add the missing var(s) to the workflow env/secrets." >&2
+    exit 1
+fi
+
+# Clean up the temp clone even on interrupt (its .git/config holds a live token).
+temp_repo=""
+cleanup() { [[ -n "$temp_repo" ]] && rm -rf "$temp_repo"; }
+trap cleanup EXIT
+
+for K in "${!components[@]}"; do
+    # Substitute every NAME@ placeholder with the value of the env var NAME.
+    repo_url="${components[$K]}"
+    while read -r match; do
+        [[ -z "$match" ]] && continue
+        name="${match%@}"
+        repo_url="${repo_url//${name}@/${!name}@}"
+    done < <(grep -oE '[A-Za-z_][A-Za-z0-9_]*@' <<< "${components[$K]}" | sort -u)
+
+    temp_remote="${repo_url}"
+    # Log the target without the substituted secret (the placeholder form is safe).
     echo -e "\nSplitting '${K}' -> ${components[$K]}\n"
     # The rest shouldn't need changing.
     temp_repo=$(mktemp -d)
@@ -42,13 +88,16 @@ for K in "${!components[@]}"; do
     git remote remove origin
     git checkout -b "${temp_branch}"
 
-    sha1=$(git subtree split --prefix="${K}" 2>/dev/null)
+    sha1=$(git subtree split --prefix="${K}") \
+        || { echo "subtree split failed for '${K}'" >&2; exit 1; }
+    [[ -n "$sha1" ]] || { echo "empty subtree SHA for '${K}'" >&2; exit 1; }
     git reset --hard "${sha1}"
-    git remote add remote "${temp_remote}"
+    git remote add -- remote "${temp_remote}"
     git push -u remote "${temp_branch}":"${source_branch}" --force
     git remote rm remote
 
     ## Cleanup
     cd /tmp
     rm -rf "${temp_repo}"
+    temp_repo=""
 done
