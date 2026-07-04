@@ -31,26 +31,35 @@ while IFS='=' read -r path repo; do
     components["$path"]="$repo"
 done < <(jq -r '.[] | .path + "=" + .repo ' "${json_source}")
 
-# Pre-flight: validate every env placeholder (NAME@) referenced by any component
-# before touching git, so we never force-push some destinations and then abort on
-# a later missing env. Aggregate all problems into one actionable error.
+# ALLOWED_ENVS (space-separated env names permitted for NAME@ substitution) is required.
+if [[ -z "${ALLOWED_ENVS:-}" ]]; then
+    echo "ALLOWED_ENVS is required: space-separated env names allowed for NAME@ substitution" >&2
+    exit 1
+fi
+
+# Pre-flight: validate and resolve every component URL before touching git, so we
+# never force-push some destinations and then abort on a later missing env. Each
+# NAME@ placeholder is substituted here once; the split loop reuses the result.
+typeset -A resolved
 missing=()
 denied=()
 for K in "${!components[@]}"; do
+    repo_url="${components[$K]}"
     while read -r match; do
         [[ -z "$match" ]] && continue
         name="${match%@}"
-        # Optional allowlist of substitutable env names.
-        if [[ -n "${ALLOWED_ENVS:-}" ]]; then
-            case " ${ALLOWED_ENVS} " in
-                *" ${name} "*) : ;;
-                *) denied+=("component '${K}' references \$${name} (not in ALLOWED_ENVS)"); continue ;;
-            esac
-        fi
+        # Only names in the ALLOWED_ENVS allowlist may be substituted.
+        case " ${ALLOWED_ENVS} " in
+            *" ${name} "*) : ;;
+            *) denied+=("component '${K}' references \$${name} (not in ALLOWED_ENVS)"); continue ;;
+        esac
         if [[ ! -v "$name" || -z "${!name}" ]]; then
             missing+=("component '${K}' requires \$${name}")
+            continue
         fi
+        repo_url="${repo_url//${name}@/${!name}@}"
     done < <(grep -oE '[A-Za-z_][A-Za-z0-9_]*@' <<< "${components[$K]}" | sort -u)
+    resolved["$K"]="$repo_url"
 done
 if (( ${#denied[@]} + ${#missing[@]} )); then
     echo "Cannot resolve component env placeholders:" >&2
@@ -65,15 +74,7 @@ cleanup() { [[ -n "$temp_repo" ]] && rm -rf "$temp_repo"; }
 trap cleanup EXIT
 
 for K in "${!components[@]}"; do
-    # Substitute every NAME@ placeholder with the value of the env var NAME.
-    repo_url="${components[$K]}"
-    while read -r match; do
-        [[ -z "$match" ]] && continue
-        name="${match%@}"
-        repo_url="${repo_url//${name}@/${!name}@}"
-    done < <(grep -oE '[A-Za-z_][A-Za-z0-9_]*@' <<< "${components[$K]}" | sort -u)
-
-    temp_remote="${repo_url}"
+    temp_remote="${resolved[$K]}"
     # Log the target without the substituted secret (the placeholder form is safe).
     echo -e "\nSplitting '${K}' -> ${components[$K]}\n"
     # The rest shouldn't need changing.

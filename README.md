@@ -253,8 +253,8 @@ docker run --rm ghcr.io/valksor/curl:latest --version
 Split a monorepo into separate destination repositories using git subtree. Each
 component in `components.json` names a destination `repo` URL; any `NAME@`
 placeholder in that URL is replaced with the value of the environment variable
-`NAME`, so different components can push behind different tokens using arbitrary
-env-var names.
+`NAME`, so different components can push behind different tokens. Only env-var
+names listed in the required `ALLOWED_ENVS` allowlist may be substituted.
 
 ```yaml
 # Use in GitHub Actions
@@ -265,10 +265,11 @@ env-var names.
     BRANCH: ${{ steps.branch.outputs.branch }}
     GH_TOKEN:     ${{ secrets.GH_TOKEN }}
     GH_TOKEN_PKG: ${{ secrets.GH_TOKEN_PKG }}
+    ALLOWED_ENVS: GH_TOKEN GH_TOKEN_PKG
     COMPONENTS_JSON_PATH: .github/deploy/components.json
 ```
 
-`components.json` (note the required `https://` scheme and arbitrary env names):
+`components.json` (note the required `https://` scheme):
 
 ```json
 [
@@ -279,8 +280,8 @@ env-var names.
 
 **Security note:** substituted values are embedded as HTTPS Basic-Auth in the
 push URL, so `components.json` (especially when fetched via `COMPONENTS_JSON_URL`,
-which is not integrity-checked) must come from a trusted source. Set
-`ALLOWED_ENVS` to restrict which env vars may be substituted.
+which is not integrity-checked) must come from a trusted source. The required
+`ALLOWED_ENVS` allowlist bounds which env vars may ever be substituted.
 
 ## Configuration
 
@@ -294,11 +295,11 @@ which is not integrity-checked) must come from a trusted source. Set
 **Action Split:**
 - `REPO` - Required: source repo `owner/name`
 - `BRANCH` - Required: source branch
-- `GH_TOKEN` - Optional: authenticates the source clone; also substituted into any `GH_TOKEN@` placeholder
-- Any env var referenced as `NAME@` in a component's `repo` URL is replaced by that env var's value (e.g. `GH_TOKEN`, `GH_TOKEN_PKG`); a referenced env that is unset or empty is a hard error
+- `ALLOWED_ENVS` - Required: space-separated allowlist of env names that may be substituted into `NAME@` placeholders
+- `GH_TOKEN` - Optional: authenticates the source clone; also substituted into a `GH_TOKEN@` placeholder when listed in `ALLOWED_ENVS`
+- Any `NAME@` placeholder in a component's `repo` URL is replaced by `$NAME`, provided `NAME` is in `ALLOWED_ENVS`; a referenced env that is not allowlisted, unset, or empty is a hard error
 - `COMPONENTS_JSON_PATH` - Optional: path to components.json (defaults to `.github/deploy/components.json`; positional arg `$1`)
 - `COMPONENTS_JSON_URL` - Optional: fallback URL if the path is missing (positional arg `$2`)
-- `ALLOWED_ENVS` - Optional: space-separated allowlist restricting which env names may be substituted
 
 **FrankenPHP:**
 - `XDG_CONFIG_HOME` - Config directory (defaults to `/config`)
