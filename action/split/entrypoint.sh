@@ -89,7 +89,8 @@ for K in "${!components[@]}"; do
     git remote remove origin
     git checkout -b "${temp_branch}"
 
-    sha1=$(git subtree split --prefix="${K}") \
+    # 2>/dev/null suppresses subtree's per-commit progress counter (noise, not errors).
+    sha1=$(git subtree split --prefix="${K}" 2>/dev/null) \
         || { echo "subtree split failed for '${K}'" >&2; exit 1; }
     [[ -n "$sha1" ]] || { echo "empty subtree SHA for '${K}'" >&2; exit 1; }
     git reset --hard "${sha1}"
