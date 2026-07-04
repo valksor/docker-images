@@ -70,7 +70,9 @@ fi
 
 # Clean up the temp clone even on interrupt (its .git/config holds a live token).
 temp_repo=""
-cleanup() { [[ -n "$temp_repo" ]] && rm -rf "$temp_repo"; }
+# if-form (not &&) so the trap returns 0 — a non-zero trap status would become
+# the script's exit code and fail the run even when every split succeeded.
+cleanup() { if [[ -n "$temp_repo" ]]; then rm -rf "$temp_repo"; fi; }
 trap cleanup EXIT
 
 for K in "${!components[@]}"; do
