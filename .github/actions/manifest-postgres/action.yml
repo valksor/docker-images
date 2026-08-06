@@ -5,21 +5,36 @@ inputs:
         description: "Space-separated versions (e.g., '18')"
         required: true
     image:
-        description: "Image name (e.g., ghcr.io/valksor/postgres)"
+        description: "Image name (e.g., ghcr.io/valksor/postgres). The per-arch sources must already exist as ${image}:${version}-arm64, plus ${image}:${version}-amd64 unless skip_amd64 is 'true'."
         required: true
+    skip_amd64:
+        description: "When 'true', create the manifests from the arm64 images only"
+        required: false
+        default: "false"
 runs:
     using: "composite"
     steps:
         -   name: Create manifests
             shell: bash
+            env:
+                INPUT_VERSIONS: ${{ inputs.versions }}
+                INPUT_IMAGE: ${{ inputs.image }}
+                INPUT_SKIP_AMD64: ${{ inputs.skip_amd64 }}
             run: |
                 set -euo pipefail
-                for v in ${{ inputs.versions }}; do
+                # INPUT_VERSIONS deliberately unquoted: word-split the space-separated versions
+                for v in ${INPUT_VERSIONS}; do
+                    ref="${INPUT_IMAGE}:${v}"
+                    sources=("${ref}-arm64")
+                    if [[ "${INPUT_SKIP_AMD64}" != "true" ]]; then
+                        sources+=("${ref}-amd64")
+                    else
+                        echo "::warning::Pushing arm64-only manifest for ${ref}; amd64 pulls will fail until the next full multi-arch build"
+                        echo "⚠️ \`${ref}\` pushed as **arm64-only**" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                    fi
                     echo "::group::Creating manifest for ${v}"
-                    docker manifest rm "${{ inputs.image }}:${v}" 2>/dev/null || true
-                    docker manifest create "${{ inputs.image }}:${v}" \
-                        "${{ inputs.image }}:${v}-amd64" \
-                        "${{ inputs.image }}:${v}-arm64"
-                    docker manifest push "${{ inputs.image }}:${v}"
+                    docker manifest rm "${ref}" 2>/dev/null || true
+                    docker manifest create "${ref}" "${sources[@]}"
+                    docker manifest push "${ref}"
                     echo "::endgroup::"
                 done

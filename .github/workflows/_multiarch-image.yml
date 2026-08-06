@@ -26,6 +26,11 @@ on:
                 type: string
                 required: false
                 default: "false"
+            skip_amd64:
+                description: "Build only the arm64 leg and create the manifest from it alone"
+                type: string
+                required: false
+                default: "false"
 
 env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -35,11 +40,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                include:
-                    -   arch: arm64
-                        runs-on: self-data
-                    -   arch: amd64
-                        runs-on: ubuntu-latest
+                # NOTE: keep this expression on one line with compact JSON — reformatting breaks YAML plain-scalar parsing
+                include: ${{ inputs.skip_amd64 == 'true' && fromJSON('[{"arch":"arm64","runs-on":"self-data"}]') || fromJSON('[{"arch":"arm64","runs-on":"self-data"},{"arch":"amd64","runs-on":"ubuntu-latest"}]') }}
         runs-on: ${{ matrix.runs-on }}
         steps:
             -   name: checkout
@@ -89,3 +91,4 @@ jobs:
                 with:
                     image: ${{ inputs.image }}
                     tag: ${{ inputs.tag }}
+                    skip_amd64: ${{ inputs.skip_amd64 }}

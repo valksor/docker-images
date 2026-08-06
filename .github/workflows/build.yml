@@ -1,5 +1,5 @@
 name: Build Docker Images
-run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]${{ github.event.inputs.skip_amd64 == 'true' && ' [skip-amd64]' || '' }}
 
 on:
     workflow_dispatch:
@@ -19,6 +19,12 @@ on:
             no_cache:
                 default: "false"
                 description: "Build with --no-cache"
+                options: [ "true", "false" ]
+                required: false
+                type: choice
+            skip_amd64:
+                default: "false"
+                description: "Skip amd64 builds; manifests are pushed from the arm64 image only (amd64 pulls of the manifest tag will fail until re-dispatched with this set to false). In chain mode applies to every multi-arch image in the run; no effect on natively arm-only images (curl, php-*)."
                 options: [ "true", "false" ]
                 required: false
                 type: choice
@@ -59,8 +65,18 @@ jobs:
                     MODE: ${{ github.event.inputs.mode }}
                     BUILD_TARGET: ${{ github.event.inputs.build_target }}
                     STOP_AFTER: ${{ github.event.inputs.stop_after }}
+                    SKIP_AMD64: ${{ github.event.inputs.skip_amd64 }}
                 run: |
                     set -euo pipefail
+                    # The choice options are only enforced by the web UI; gh/REST dispatch can pass
+                    # any string, and every consumer compares == 'true' case-sensitively.
+                    case "${SKIP_AMD64}" in
+                        true)
+                            echo "::warning::skip_amd64=true — every multi-arch image in this run will be pushed with an arm64-only manifest" ;;
+                        false|"") ;;
+                        *)  echo "::error::skip_amd64 must be 'true' or 'false' (got '${SKIP_AMD64}')"; exit 1 ;;
+                    esac
+
                     ORDER=(debian action-split nginx postgres go curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
                     ARM_ONLY_TARGETS=(curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
 
@@ -117,6 +133,7 @@ jobs:
             build_args: |
                 CACHE_BUSTER=${{ github.run_id }}
             no_cache: ${{ github.event.inputs.no_cache }}
+            skip_amd64: ${{ github.event.inputs.skip_amd64 }}
         secrets: inherit
 
     action-split:
@@ -131,6 +148,7 @@ jobs:
             dockerfile: action/split/Dockerfile
             image: ghcr.io/valksor/action/split
             no_cache: ${{ github.event.inputs.no_cache }}
+            skip_amd64: ${{ github.event.inputs.skip_amd64 }}
         secrets: inherit
 
     nginx:
@@ -145,6 +163,7 @@ jobs:
             dockerfile: nginx/Dockerfile
             image: ghcr.io/valksor/nginx
             no_cache: ${{ github.event.inputs.no_cache }}
+            skip_amd64: ${{ github.event.inputs.skip_amd64 }}
         secrets: inherit
 
     # -------------------------
@@ -161,11 +180,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                include:
-                    -   arch: arm64
-                        runs-on: self-data
-                    -   arch: amd64
-                        runs-on: ubuntu-latest
+                # NOTE: keep this expression on one line with compact JSON — reformatting breaks YAML plain-scalar parsing
+                include: ${{ github.event.inputs.skip_amd64 == 'true' && fromJSON('[{"arch":"arm64","runs-on":"self-data"}]') || fromJSON('[{"arch":"arm64","runs-on":"self-data"},{"arch":"amd64","runs-on":"ubuntu-latest"}]') }}
         runs-on: ${{ matrix.runs-on }}
         steps:
             -   name: checkout
@@ -209,6 +225,7 @@ jobs:
                 with:
                     versions: "18"
                     image: ${{ env.OWNER }}/postgres
+                    skip_amd64: ${{ github.event.inputs.skip_amd64 }}
 
     # -------------------------
     # go — uses build-go (downloads Go tarball per arch)
@@ -224,11 +241,8 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                include:
-                    -   arch: arm64
-                        runs-on: self-data
-                    -   arch: amd64
-                        runs-on: ubuntu-latest
+                # NOTE: keep this expression on one line with compact JSON — reformatting breaks YAML plain-scalar parsing
+                include: ${{ github.event.inputs.skip_amd64 == 'true' && fromJSON('[{"arch":"arm64","runs-on":"self-data"}]') || fromJSON('[{"arch":"arm64","runs-on":"self-data"},{"arch":"amd64","runs-on":"ubuntu-latest"}]') }}
         runs-on: ${{ matrix.runs-on }}
         steps:
             -   name: checkout
@@ -273,6 +287,7 @@ jobs:
                 with:
                     image: ${{ env.OWNER }}/go
                     tag: latest
+                    skip_amd64: ${{ github.event.inputs.skip_amd64 }}
 
     # -------------------------
     # arm-only chain: curl + php-*
