@@ -6,7 +6,7 @@ on:
         inputs:
             mode:
                 default: "single"
-                description: "single = one image; chain = run ordered pipeline starting at start_at"
+                description: "single = one image; chain = run ordered pipeline starting at build_target"
                 options: [ "single", "chain" ]
                 required: true
                 type: choice
@@ -71,9 +71,7 @@ jobs:
                     # The choice options are only enforced by the web UI; gh/REST dispatch can pass
                     # any string, and every consumer compares == 'true' case-sensitively.
                     case "${SKIP_AMD64}" in
-                        true)
-                            echo "::warning::skip_amd64=true — every multi-arch image in this run will be pushed with an arm64-only manifest" ;;
-                        false|"") ;;
+                        true|false|"") ;;
                         *)  echo "::error::skip_amd64 must be 'true' or 'false' (got '${SKIP_AMD64}')"; exit 1 ;;
                     esac
 
@@ -101,6 +99,17 @@ jobs:
 
                     PADDED=" ${RUN_LIST[*]} "
                     echo "run_list=$PADDED" >> "$GITHUB_OUTPUT"
+
+                    # Warn only when the run actually contains a multi-arch image;
+                    # skip_amd64 has no effect on the natively arm-only targets.
+                    if [[ "${SKIP_AMD64}" == "true" ]]; then
+                        for t in "${RUN_LIST[@]}"; do
+                            if [[ " ${ARM_ONLY_TARGETS[*]} " != *" $t "* ]]; then
+                                echo "::warning::skip_amd64=true — multi-arch images in this run will be pushed with arm64-only manifests"
+                                break
+                            fi
+                        done
+                    fi
 
                     ARM_ONLY_NEEDED=false
                     for t in "${ARM_ONLY_TARGETS[@]}"; do
