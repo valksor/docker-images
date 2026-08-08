@@ -110,6 +110,7 @@ COPY    --from=composer:2                       /usr/bin/composer /usr/bin/
 RUN     \
         set -eux \
 &&      apt-get update \
+&&      apt-get dist-upgrade -y \
 &&      apt-get autoremove -y --purge \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
 &&      ldconfig \

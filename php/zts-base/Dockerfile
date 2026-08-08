@@ -188,6 +188,7 @@ COPY --from=builder /var/lib/php/ /var/lib/php/
 RUN     \
         set -eux \
 &&      apt-get update \
+&&      apt-get dist-upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libxml2 libssl3t64 libsqlite3-0 libbz2-1.0 libidn2-0 \
             zstd libbrotli1 libpsl5t64 libgsasl18 rtmpdump librtmp1 libnghttp3-9 nghttp2 \

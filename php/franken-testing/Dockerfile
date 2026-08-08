@@ -123,6 +123,7 @@ COPY    php/ini/opcache.no-jit.ini /usr/local/etc/php/conf.d/docker-php-ext-opca
 RUN     \
         set -eux \
 &&      apt-get update \
+&&      apt-get dist-upgrade -y \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libcap2-bin libstdc++6 \
 &&      apt-get autoremove -y --purge \
