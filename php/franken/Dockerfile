@@ -123,7 +123,8 @@ COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get upgrade -y \
+# dist-upgrade, not upgrade: sid transitions can need package adds/removals to move perl-base; plain upgrade holds it back and perl postinsts break on the skew
+&&      apt-get dist-upgrade -y --no-install-recommends \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libcap2-bin libstdc++6 \
 &&      apt-get autoremove -y --purge \

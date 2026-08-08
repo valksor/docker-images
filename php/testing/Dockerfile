@@ -112,7 +112,8 @@ COPY    --from=composer:2                       /usr/bin/composer /usr/bin/
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get dist-upgrade -y \
+# dist-upgrade, not upgrade: sid transitions can need package adds/removals to move perl-base; plain upgrade holds it back and perl postinsts break on the skew
+&&      apt-get dist-upgrade -y --no-install-recommends \
 &&      apt-get autoremove -y --purge \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
 &&      ldconfig \

@@ -145,7 +145,8 @@ COPY --from=builder /var/lib/php/ /var/lib/php/
 RUN     \
         set -eux \
 &&      apt-get update \
-&&      apt-get upgrade -y \
+# dist-upgrade, not upgrade: sid transitions can need package adds/removals to move perl-base; plain upgrade holds it back and perl postinsts break on the skew
+&&      apt-get dist-upgrade -y --no-install-recommends \
 &&      apt-get install -y --no-install-recommends --allow-downgrades \
             libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
             libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 \
