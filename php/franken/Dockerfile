@@ -46,10 +46,17 @@ RUN     \
 # Copy FrankenPHP source (cloned in GitHub Action)
 WORKDIR /go/src/app
 COPY    php/frankenphp/    /go/src/app/
+COPY    php/patches/frankenphp-php86-output-handler.patch    /tmp/
 
-# Download Go modules
+# php-src master turned PG(output_handler) into a zend_string*, which upstream FrankenPHP
+# does not handle yet. The patch is guarded on PHP_VERSION_ID so the 8.5 build is unaffected,
+# and it is skipped once upstream adapts so this cannot go stale unnoticed.
 RUN     \
         set -eux \
+&&      if ! grep -qF 'PHP_VERSION_ID >= 80600' frankenphp.c \
+        && grep -qF 'ZVAL_STRING(&oh, PG(output_handler))' frankenphp.c; then \
+            git apply -p1 /tmp/frankenphp-php86-output-handler.patch; \
+        fi \
 &&      go mod download
 
 # Set up CGO environment for linking against PHP
@@ -64,7 +71,8 @@ RUN     \
 &&      go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest \
 &&      CGO_LDFLAGS="$CGO_LDFLAGS -s -w" /root/go/bin/xcaddy build \
             --output frankenphp \
-            --with github.com/dunglas/frankenphp/caddy \
+            --with github.com/dunglas/frankenphp/caddy=/go/src/app/caddy \
+            --with github.com/dunglas/frankenphp=/go/src/app \
             --with github.com/dunglas/mercure/caddy \
             --with github.com/dunglas/vulcain/caddy \
             --with github.com/dunglas/caddy-cbrotli \
