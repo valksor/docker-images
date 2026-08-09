@@ -64,12 +64,22 @@ runs:
                     clone https://github.com/fork-php/xdebug.git xdebug
                 fi
 
-                # Clone extra repos if specified
+                # Clone extra repos if specified. These are third-party upstreams rather than
+                # fork-php repos we control, so each may pin a tag or branch as url@ref.
                 if [ -n "${{ inputs.extra_repos }}" ]; then
                     for extra_repo in ${{ inputs.extra_repos }}; do
                         name=$(echo $extra_repo | cut -d= -f1)
-                        url=$(echo $extra_repo | cut -d= -f2)
-                        clone "$url" "$name"
+                        url=$(echo $extra_repo | cut -d= -f2-)
+                        ref=""
+                        case "$url" in
+                            *.git@*) ref="${url##*@}"; url="${url%@*}" ;;
+                        esac
+                        if [ -n "$ref" ]; then
+                            git clone --single-branch --branch "$ref" "$url" "$name"
+                            cd "$name" && git submodule update --init --force && cd ..
+                        else
+                            clone "$url" "$name"
+                        fi
                     done
                 fi
 

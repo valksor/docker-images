@@ -1,3 +1,17 @@
+Local patch, not from upstream. Applies to FrankenPHP v1.12.7 (github.com/php/frankenphp).
+
+php-src commit e0221be8 (2026-07-30, master/8.6.0-dev) changed PG(output_handler) from
+char * to zend_string *, so FrankenPHP's char * usage stops compiling against php-src
+master. Upstream had not adapted as of v1.12.7. The 8.6 branch mirrors what php-src's own
+main.c does at request startup, including dropping the empty-string check: output_handler
+is registered with OnUpdateStrNotEmpty, which rejects empty values, so a non-NULL
+zero-length handler cannot occur. The PHP_VERSION_ID split keeps the 8.5 build byte-identical
+to unpatched upstream.
+
+Drop this file, its COPY/apply block in php/franken{,-testing}/Dockerfile, and bump the
+frankenphp pin in .github/actions/build-php-franken{,-testing}/action.yml once a release
+handles zend_string * itself.
+
 --- a/frankenphp.c
 +++ b/frankenphp.c
 @@ -586,10 +586,17 @@

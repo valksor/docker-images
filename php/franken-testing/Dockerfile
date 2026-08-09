@@ -3,7 +3,7 @@ FROM    ghcr.io/valksor/php/zts-testing${BASE_TAG} AS builder
 
 ARG     CACHE_BUSTER=default
 ARG     PHP_VERSION
-ARG     FRANKENPHP_VERSION=dev
+ARG     FRANKENPHP_VERSION=v1.12.7
 
 USER    root
 
@@ -49,8 +49,10 @@ COPY    php/frankenphp/    /go/src/app/
 COPY    php/patches/frankenphp-php86-output-handler.patch    /tmp/
 
 # php-src master turned PG(output_handler) into a zend_string*, which upstream FrankenPHP
-# does not handle yet. The patch is guarded on PHP_VERSION_ID so the 8.5 build is unaffected,
-# and it is skipped once upstream adapts so this cannot go stale unnoticed.
+# does not handle yet, so php/patches/frankenphp-php86-output-handler.patch adapts it. The
+# patch itself carries the PHP_VERSION_ID split, so one patched tree serves 8.5 and 8.6 alike.
+# The branches below sniff which of the three states the pinned source is in; drop the patch
+# and this block once the pin moves to a release that handles zend_string* itself.
 RUN     \
         set -eux \
 &&      if grep -qF 'zend_string_dup(PG(output_handler)' frankenphp.c; then \
@@ -58,7 +60,8 @@ RUN     \
         elif grep -qF 'ZVAL_STRING(&oh, PG(output_handler))' frankenphp.c; then \
             git apply -p1 /tmp/frankenphp-php86-output-handler.patch; \
         else \
-            echo 'WARNING: frankenphp.c output_handler code moved; patch skipped, expect a compile error' >&2; \
+            echo 'frankenphp.c output_handler code moved: refresh php/patches/frankenphp-php86-output-handler.patch and the greps above' >&2; \
+            exit 1; \
         fi \
 &&      go mod download
 

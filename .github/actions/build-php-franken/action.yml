@@ -28,7 +28,7 @@ runs:
             with:
                 php_branch: ${{ inputs.php_branch }}
                 base_image: "zts-base"
-                extra_repos: "frankenphp=https://github.com/php/frankenphp.git"
+                extra_repos: "frankenphp=https://github.com/php/frankenphp.git@v1.12.7"
 
         -   uses: ./.github/actions/build-simple
             with:
