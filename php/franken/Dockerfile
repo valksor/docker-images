@@ -53,9 +53,12 @@ COPY    php/patches/frankenphp-php86-output-handler.patch    /tmp/
 # and it is skipped once upstream adapts so this cannot go stale unnoticed.
 RUN     \
         set -eux \
-&&      if ! grep -qF 'PHP_VERSION_ID >= 80600' frankenphp.c \
-        && grep -qF 'ZVAL_STRING(&oh, PG(output_handler))' frankenphp.c; then \
+&&      if grep -qF 'zend_string_dup(PG(output_handler)' frankenphp.c; then \
+            echo 'frankenphp.c already speaks the 8.6 output_handler API; skipping patch'; \
+        elif grep -qF 'ZVAL_STRING(&oh, PG(output_handler))' frankenphp.c; then \
             git apply -p1 /tmp/frankenphp-php86-output-handler.patch; \
+        else \
+            echo 'WARNING: frankenphp.c output_handler code moved; patch skipped, expect a compile error' >&2; \
         fi \
 &&      go mod download
 
