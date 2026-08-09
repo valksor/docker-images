@@ -3,7 +3,7 @@ FROM    ghcr.io/valksor/php/zts-testing${BASE_TAG} AS builder
 
 ARG     CACHE_BUSTER=default
 ARG     PHP_VERSION
-ARG     FRANKENPHP_VERSION=v1.12.7
+ARG     FRANKENPHP_VERSION=dev
 
 USER    root
 

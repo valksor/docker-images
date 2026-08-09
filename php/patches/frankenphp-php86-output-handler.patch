@@ -1,4 +1,5 @@
-Local patch, not from upstream. Applies to FrankenPHP v1.12.7 (github.com/php/frankenphp).
+Local patch, not from upstream. Written against FrankenPHP v1.12.7 / main, which were the
+same commit at the time (github.com/php/frankenphp).
 
 php-src commit e0221be8 (2026-07-30, master/8.6.0-dev) changed PG(output_handler) from
 char * to zend_string *, so FrankenPHP's char * usage stops compiling against php-src
@@ -8,9 +9,9 @@ is registered with OnUpdateStrNotEmpty, which rejects empty values, so a non-NUL
 zero-length handler cannot occur. The PHP_VERSION_ID split keeps the 8.5 build byte-identical
 to unpatched upstream.
 
-Drop this file, its COPY/apply block in php/franken{,-testing}/Dockerfile, and bump the
-frankenphp pin in .github/actions/build-php-franken{,-testing}/action.yml once a release
-handles zend_string * itself.
+The apply step in php/franken{,-testing}/Dockerfile detects when upstream adopts the
+zend_string * API and skips this patch, so the build picks the fix up on its own. Delete
+this file and that block once the skip branch is what fires.
 
 --- a/frankenphp.c
 +++ b/frankenphp.c
