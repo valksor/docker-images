@@ -51,8 +51,8 @@ COPY    php/patches/frankenphp-php86-output-handler.patch    /tmp/
 # php-src master turned PG(output_handler) into a zend_string*, which upstream FrankenPHP
 # does not handle yet, so php/patches/frankenphp-php86-output-handler.patch adapts it. The
 # patch itself carries the PHP_VERSION_ID split, so one patched tree serves 8.5 and 8.6 alike.
-# The branches below sniff which of the three states the pinned source is in; drop the patch
-# and this block once the pin moves to a release that handles zend_string* itself.
+# The branches below sniff which of the three states the cloned source is in, so the patch
+# drops out of the build by itself once upstream adopts the new API.
 RUN     \
         set -eux \
 &&      if grep -qF 'zend_string_dup(PG(output_handler)' frankenphp.c; then \
