@@ -1,5 +1,5 @@
 name: Build Docker Images
-run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]${{ github.event.inputs.skip_amd64 != 'true' && ' [+amd64]' || '' }}
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.mode == 'chain' && github.event.inputs.stop_after && github.event.inputs.stop_after != 'none' && format(':{0}', github.event.inputs.stop_after) || '' }}]${{ github.event.inputs.skip_amd64 != 'true' && ' [+amd64]' || '' }}
 
 on:
     workflow_dispatch:
@@ -29,9 +29,9 @@ on:
                 required: false
                 type: choice
             stop_after:
-                default: ""
+                default: "none"
                 description: "Stop building after this image (chain mode only)"
-                options: [ "", "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", "php-fpm-base-master", "php-fpm-master", "php-fpm-testing-master", "php-fpm-socket-master", "php-zts-base", "php-zts", "php-zts-testing", "php-franken", "php-franken-testing", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket", ]
+                options: [ "none", "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", "php-fpm-base-master", "php-fpm-master", "php-fpm-testing-master", "php-fpm-socket-master", "php-zts-base", "php-zts", "php-zts-testing", "php-franken", "php-franken-testing", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket", ]
                 required: false
                 type: choice
 
@@ -74,9 +74,32 @@ jobs:
                         true|false|"") ;;
                         *)  echo "::error::skip_amd64 must be 'true' or 'false' (got '${SKIP_AMD64}')"; exit 1 ;;
                     esac
+                    case "$MODE" in
+                        single|chain) ;;
+                        *)  echo "::error::mode must be 'single' or 'chain' (got '${MODE}')"; exit 1 ;;
+                    esac
+                    if [[ "$STOP_AFTER" == "none" ]]; then
+                        STOP_AFTER=""
+                    fi
+                    if [[ "$MODE" == "single" && -n "$STOP_AFTER" ]]; then
+                        echo "::error::stop_after is only valid in chain mode"
+                        exit 1
+                    fi
 
                     ORDER=(debian action-split nginx postgres go curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
                     ARM_ONLY_TARGETS=(curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
+
+                    BUILD_TARGET_VALID=false
+                    for target in "${ORDER[@]}"; do
+                        if [[ "$target" == "$BUILD_TARGET" ]]; then
+                            BUILD_TARGET_VALID=true
+                            break
+                        fi
+                    done
+                    if [[ "$BUILD_TARGET_VALID" != "true" ]]; then
+                        echo "::error::build_target '${BUILD_TARGET}' is not valid"
+                        exit 1
+                    fi
 
                     RUN_LIST=()
 
@@ -95,6 +118,10 @@ jobs:
                                 fi
                             fi
                         done
+                        if [[ -n "$STOP_AFTER" && "$STOPPED" != "true" ]]; then
+                            echo "::error::stop_after '${STOP_AFTER}' must be a valid target at or after build_target '${BUILD_TARGET}'"
+                            exit 1
+                        fi
                     fi
 
                     PADDED=" ${RUN_LIST[*]} "
