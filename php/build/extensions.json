@@ -47,8 +47,8 @@
         "source": "/tmp/extensions/msgpack-php/",
         "enable": true
     },
-    "simdjson": {
-        "source": "/tmp/extensions/simdjson_php/",
+    "simdjson_plus": {
+        "source": "/tmp/extensions/simdjson-plus-php-ext/",
         "enable": true
     },
     "uuid": {

@@ -62,7 +62,7 @@ COPY    php/php-inotify/ /tmp/extensions/php-inotify/
 COPY    php/php-spx/ /tmp/extensions/php-spx/
 COPY    php/php_zip/ /tmp/extensions/php_zip/
 COPY    php/phpredis/ /tmp/extensions/phpredis/
-COPY    php/simdjson_php/ /tmp/extensions/simdjson_php/
+COPY    php/simdjson-plus-php-ext/ /tmp/extensions/simdjson-plus-php-ext/
 COPY    php/grpc/ /tmp/extensions/grpc/
 COPY    php/protobuf/ /tmp/extensions/protobuf/
 
