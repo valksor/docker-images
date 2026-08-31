@@ -1,5 +1,5 @@
 name: Build Docker Images
-run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]${{ github.event.inputs.skip_amd64 == 'true' && ' [skip-amd64]' || '' }}
+run-name: Build Images [${{ github.event.inputs.mode || 'single' }}:${{ github.event.inputs.build_target || 'n/a' }}${{ github.event.inputs.stop_after && format(':{0}', github.event.inputs.stop_after) || '' }}]${{ github.event.inputs.skip_amd64 != 'true' && ' [+amd64]' || '' }}
 
 on:
     workflow_dispatch:
@@ -23,8 +23,8 @@ on:
                 required: false
                 type: choice
             skip_amd64:
-                default: "false"
-                description: "Skip amd64 builds; manifests are pushed from the arm64 image only (amd64 pulls of the manifest tag will fail until re-dispatched with this set to false). In chain mode applies to every multi-arch image in the run; no effect on natively arm-only images (curl, php-*)."
+                default: "true"
+                description: "Skip amd64 builds (the default); manifests are pushed from the arm64 image only and amd64 pulls of the manifest tag will fail until re-dispatched with this set to false. In chain mode applies to every multi-arch image in the run; no effect on natively arm-only images (curl, php-*)."
                 options: [ "true", "false" ]
                 required: false
                 type: choice

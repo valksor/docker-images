@@ -343,12 +343,12 @@ which is not integrity-checked) must come from a trusted source. The required
 ### Optimized for Production
 - **Minimal size**: All non-essential packages, docs, and locales removed
 - **Native compilation**: Built with `-march=native` for optimal performance
-- **Multi-architecture support**: Available for x86_64 and ARM64/Apple Silicon
+- **Multi-architecture support**: ARM64/Apple Silicon by default; x86_64 built on request
 
 ### Multi-Architecture Support
-All images are built for:
-- `linux/amd64` (x86_64)
-- `linux/arm64` (ARM64/Apple Silicon)
+Images are published as manifests covering:
+- `linux/arm64` (ARM64/Apple Silicon) — always built
+- `linux/amd64` (x86_64) — built on request; the build workflow defaults to arm64 only
 
 ### Security Hardened
 - **Non-root user**: Most containers run as the `valksor` user (UID/GID 1000); service images run as their dedicated user (e.g. PostgreSQL runs as `postgres`, starting as root only to drop privileges via gosu)
