@@ -54,7 +54,8 @@ runs:
                 clone https://github.com/fork-php/php-spx.git php-spx
                 clone https://github.com/fork-php/php_zip.git php_zip
                 clone https://github.com/fork-php/phpredis.git phpredis
-                clone https://github.com/awesomized/simdjson-plus-php-ext.git simdjson-plus-php-ext
+                clone https://github.com/fork-php/simdjson-plus-php-ext.git simdjson-plus-php-ext
+                clone https://github.com/fork-php/simdutf-php-ext.git simdutf-php-ext
                 clone https://github.com/fork-php/grpc.git grpc
                 clone https://github.com/fork-php/protobuf.git protobuf
 

@@ -51,6 +51,11 @@
         "source": "/tmp/extensions/simdjson-plus-php-ext/",
         "enable": true
     },
+    "simdutf": {
+        "source": "/tmp/extensions/simdutf-php-ext/",
+        "enable": true,
+        "configure": "--enable-simdutf"
+    },
     "uuid": {
         "source": "/tmp/extensions/pecl-networking-uuid/",
         "enable": true
