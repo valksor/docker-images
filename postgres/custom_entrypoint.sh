@@ -38,7 +38,7 @@ docker-entrypoint.sh postgres \
 	"$@" &
 PG_PID=$!
 
-MAX_RETRIES=30
+MAX_RETRIES=120
 RETRY=0
 # On first boot the official entrypoint runs a temporary socket-only server for initdb, which
 # answers psql over the socket and then shuts down. Only the final server listens on TCP, so
