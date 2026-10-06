@@ -76,6 +76,8 @@ RUN     \
 &&      ln -sf /tmp/extensions/protobuf/third_party/utf8_range /tmp/extensions/protobuf/php/ext/google/protobuf/third_party/utf8_range \
 &&      sed -i 's/zval_dtor/zval_ptr_dtor/g' /tmp/extensions/protobuf/php/ext/google/protobuf/map.c \
 &&      sed -i 's/zval_dtor/zval_ptr_dtor/g' /tmp/extensions/protobuf/php/ext/google/protobuf/message.c \
+# simdjson-plus names its module simdjson_plus, so configure defines COMPILE_DL_SIMDJSON_PLUS, but the header and GINIT still test COMPILE_DL_SIMDJSON: in a ZTS build the TSRM cache is never set and the first request segfaults.
+&&      sed -i 's/COMPILE_DL_SIMDJSON\([^_A-Za-z]\|$\)/COMPILE_DL_SIMDJSON_PLUS\1/g' /tmp/extensions/simdjson-plus-php-ext/php_simdjson.h /tmp/extensions/simdjson-plus-php-ext/php_simdjson.cpp \
 &&      chmod +x /tmp/build-extensions.sh \
 &&      /tmp/build-extensions.sh \
 &&      cp /tmp/extensions/grpc/libs/opt/libgrpc*.so* /usr/local/lib/ \
