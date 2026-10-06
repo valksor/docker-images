@@ -40,7 +40,10 @@ PG_PID=$!
 
 MAX_RETRIES=30
 RETRY=0
-until psql -U "$POSTGRES_USER" -d postgres -c '\l'; do
+# On first boot the official entrypoint runs a temporary socket-only server for initdb, which
+# answers psql over the socket and then shuts down. Only the final server listens on TCP, so
+# require that before installing extensions.
+until pg_isready -h 127.0.0.1 -p "${PGPORT:-5432}" -q && psql -U "$POSTGRES_USER" -d postgres -c '\l'; do
 	if ! kill -0 "$PG_PID" 2>/dev/null; then
 		echo "ERROR: PostgreSQL process has died. Check logs above for details."
 		exit 1
