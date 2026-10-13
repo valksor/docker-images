@@ -15,7 +15,10 @@ EXTENSIONS_MARKER="${PGDATA:-/var/lib/postgresql/18/docker}/.extensions_installe
 PG_PID=
 cleanup() {
 	[ -n "$PG_PID" ] || return 0
-	kill -TERM "$PG_PID" 2>/dev/null || true
+	# SIGINT = fast shutdown: disconnects clients and writes a clean shutdown checkpoint.
+	# SIGTERM is "smart" shutdown, which waits for idle pooler connections until the
+	# orchestrator's grace period SIGKILLs postgres and tears the checkpoint.
+	kill -INT "$PG_PID" 2>/dev/null || true
 	wait "$PG_PID" 2>/dev/null || true
 }
 trap cleanup SIGTERM SIGINT

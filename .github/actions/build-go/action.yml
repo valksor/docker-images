@@ -17,6 +17,14 @@ inputs:
     arch:
         description: "Target architecture (amd64 or arm64)"
         required: true
+    version_image:
+        description: "Image name (e.g., ghcr.io/valksor/go); when set, also tags it as <image>:<go_version>-<arch>"
+        required: false
+        default: ""
+outputs:
+    go_version:
+        description: "Resolved Go version"
+        value: ${{ steps.download.outputs.go_version }}
 runs:
     using: "composite"
     steps:
@@ -29,7 +37,9 @@ runs:
         -   uses: ./.github/actions/build-simple
             with:
                 dockerfile: ${{ inputs.dockerfile }}
-                tags: ${{ inputs.tags }}
+                tags: |
+                    ${{ inputs.tags }}
+                    ${{ inputs.version_image != '' && format('{0}:{1}-{2}', inputs.version_image, steps.download.outputs.go_version, inputs.arch) || '' }}
                 arch: ${{ inputs.arch }}
                 build-args: |
                     GO_VERSION=${{ steps.download.outputs.go_version }}

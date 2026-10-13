@@ -269,6 +269,9 @@ jobs:
 
     go-build:
         needs: [plan, postgres-build, postgres-manifest]
+        outputs:
+            # every matrix leg resolves the same version
+            go_version: ${{ steps.build.outputs.go_version }}
         if: |
             !cancelled()
             && contains(needs.plan.outputs.run_list, ' go ')
@@ -296,11 +299,13 @@ jobs:
                     username: ${{ secrets.DH_USERNAME }}
                     password: ${{ secrets.DH_TOKEN }}
             -   name: build go
+                id: build
                 uses: ./.github/actions/build-go
                 with:
                     version: latest
                     dockerfile: go/Dockerfile
                     arch: ${{ matrix.arch }}
+                    version_image: ${{ env.OWNER }}/go
                     tags: |
                         ${{ env.OWNER }}/go:latest-${{ matrix.arch }}
                     no_cache: ${{ github.event.inputs.no_cache }}
@@ -323,6 +328,12 @@ jobs:
                 with:
                     image: ${{ env.OWNER }}/go
                     tag: latest
+                    skip_amd64: ${{ github.event.inputs.skip_amd64 }}
+            -   name: manifest go (versioned)
+                uses: ./.github/actions/manifest-multiarch
+                with:
+                    image: ${{ env.OWNER }}/go
+                    tag: ${{ needs.go-build.outputs.go_version }}
                     skip_amd64: ${{ github.event.inputs.skip_amd64 }}
 
     # -------------------------
