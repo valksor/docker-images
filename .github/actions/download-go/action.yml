@@ -40,8 +40,47 @@ runs:
 
                 URL="https://go.dev/dl/${FILENAME}"
 
-                mkdir -p go-root-${{ inputs.version }}
-                curl -fSL "$URL" -o /tmp/go.tar.gz
-                echo "${SHA256}  /tmp/go.tar.gz" | sha256sum -c -
-                tar -xzf /tmp/go.tar.gz -C go-root-${{ inputs.version }}
-                rm -f /tmp/go.tar.gz
+                ROOT="go-root-${{ inputs.version }}"
+                CURL_OPTS="--connect-timeout 15 --speed-limit 102400 --speed-time 30 --retry 2"
+                mkdir -p "$ROOT"
+
+                # dl.google.com (where go.dev/dl redirects) is unreachable from some runners:
+                # the handshake completes but no body arrives. Fail fast, then fall back to
+                # the Go module proxy toolchain zip, verified against the Go checksum database.
+                if curl -fSL $CURL_OPTS "$URL" -o /tmp/go.tar.gz \
+                    && echo "${SHA256}  /tmp/go.tar.gz" | sha256sum -c -; then
+                    tar -xzf /tmp/go.tar.gz -C "$ROOT"
+                    echo "Go ${GO_VERSION} installed from go.dev tarball"
+                else
+                    MODULE="golang.org/toolchain"
+                    MODVER="v0.0.1-go${GO_VERSION}.linux-${{ inputs.arch }}"
+                    curl -fSL $CURL_OPTS "https://proxy.golang.org/${MODULE}/@v/${MODVER}.zip" -o /tmp/go.zip
+                    H1=$(curl -fsSL $CURL_OPTS "https://sum.golang.org/lookup/${MODULE}@${MODVER}" \
+                        | awk -v m="$MODULE" -v v="$MODVER" '$1 == m && $2 == v { print $3 }')
+                    [ -n "$H1" ] || { echo "Could not determine checksum database hash for ${MODVER}"; exit 1; }
+                    python3 -I - /tmp/go.zip "$H1" "$ROOT/go" "${MODULE}@${MODVER}/" <<'PY'
+                import base64, hashlib, os, sys, zipfile
+
+                path, expected, dest, prefix = sys.argv[1:]
+                with zipfile.ZipFile(path) as z:
+                    infos = sorted((i for i in z.infolist() if not i.is_dir()), key=lambda i: i.filename)
+                    lines = b"".join(
+                        hashlib.sha256(z.read(i)).hexdigest().encode() + b"  " + i.filename.encode() + b"\n"
+                        for i in infos
+                    )
+                    actual = "h1:" + base64.b64encode(hashlib.sha256(lines).digest()).decode()
+                    if actual != expected:
+                        sys.exit(f"checksum mismatch: got {actual}, want {expected}")
+                    for i in infos:
+                        if not i.filename.startswith(prefix) or ".." in i.filename.split("/"):
+                            sys.exit(f"unexpected zip entry: {i.filename}")
+                        target = os.path.join(dest, i.filename[len(prefix):])
+                        os.makedirs(os.path.dirname(target), exist_ok=True)
+                        with open(target, "wb") as f:
+                            f.write(z.read(i))
+                        os.chmod(target, ((i.external_attr >> 16) & 0o777) or 0o644)
+                print("verified " + actual)
+                PY
+                    echo "Go ${GO_VERSION} installed from Go module proxy (verified against sum.golang.org)"
+                fi
+                rm -f /tmp/go.tar.gz /tmp/go.zip
