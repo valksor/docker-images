@@ -1,0 +1,69 @@
+Local patch, not from upstream. Written against FrankenPHP main at commit f6bb84b
+(github.com/php/frankenphp).
+
+php-src master removed sapi_terminate_process() and the terminate_process member of
+struct _sapi_module_struct (main/SAPI.h), so FrankenPHP's positional
+frankenphp_sapi_module initializer, which passes NULL for Child terminate, shifts
+every later field and stops compiling (int from void * at php_ini_ignore, excess
+elements in struct initializer). PHP_VERSION_ID cannot tell master apart from before
+the removal, so the initializer is rewritten with C99 designated initializers for the
+members FrankenPHP actually sets. Omitted members are zero-initialized, the same as
+the NULL entries and the all-NULL/0 STANDARD_SAPI_MODULE_PROPERTIES the positional
+form relied on, so the one initializer serves 8.5 and master alike.
+
+The apply step in php/franken{,-testing}/Dockerfile skips this patch once upstream
+changes the initializer itself, so the build picks the fix up on its own. Delete this
+file and that block once the skip branch is what fires.
+
+--- a/frankenphp.c
++++ b/frankenphp.c
+@@ -1543,35 +1543,27 @@ static void frankenphp_ini_defaults(HashTable *configuration_hash) {
+ }
+ 
+ sapi_module_struct frankenphp_sapi_module = {
+-    "frankenphp", /* name */
+-    "FrankenPHP", /* pretty name */
++    .name = "frankenphp",
++    .pretty_name = "FrankenPHP",
+ 
+-    frankenphp_startup,          /* startup */
+-    php_module_shutdown_wrapper, /* shutdown */
++    .startup = frankenphp_startup,
++    .shutdown = php_module_shutdown_wrapper,
+ 
+-    NULL,                  /* activate */
+-    frankenphp_deactivate, /* deactivate */
++    .deactivate = frankenphp_deactivate,
+ 
+-    frankenphp_ub_write,   /* unbuffered write */
+-    frankenphp_sapi_flush, /* flush */
+-    NULL,                  /* get uid */
+-    frankenphp_getenv,     /* getenv */
++    .ub_write = frankenphp_ub_write,
++    .flush = frankenphp_sapi_flush,
++    .getenv = frankenphp_getenv,
+ 
+-    php_error, /* error handler */
++    .sapi_error = php_error,
+ 
+-    NULL,                    /* header handler */
+-    frankenphp_send_headers, /* send headers handler */
+-    NULL,                    /* send header handler */
++    .send_headers = frankenphp_send_headers,
+ 
+-    frankenphp_read_post,    /* read POST data */
+-    frankenphp_read_cookies, /* read Cookies */
++    .read_post = frankenphp_read_post,
++    .read_cookies = frankenphp_read_cookies,
+ 
+-    frankenphp_register_variables, /* register server variables */
+-    frankenphp_log_message,        /* Log message */
+-    NULL,                          /* Get request time */
+-    NULL,                          /* Child terminate */
+-
+-    STANDARD_SAPI_MODULE_PROPERTIES};
++    .register_server_variables = frankenphp_register_variables,
++    .log_message = frankenphp_log_message};
+ 
+ /* Sets thread name for profiling and debugging.
+  *

@@ -1,0 +1,35 @@
+Local patch, not from upstream. Written against FrankenPHP main at commit f6bb84b
+(github.com/php/frankenphp).
+
+php-src commit 37d0ef5a6 (2026-09-29, #23927) removed Zend/zend_atomic.h and the
+zend_atomic_* API in favour of C11 atomics: EG(vm_interrupt) and EG(timed_out) are now
+atomic_bool. FrankenPHP still uses zend_atomic_bool (two struct fields in frankenphp.h,
+plus one static and three zend_atomic_bool_store/load calls in frankenphp.c), so it stops
+compiling against php-src master. Upstream had not adapted as of that commit. The typedef
+and macros cover frankenphp.c's uses, so the patch only touches the header, and the
+__has_include switch keeps builds against php-src without that commit (8.5) on the
+original Zend/zend_atomic.h.
+
+The apply step in php/franken{,-testing}/Dockerfile skips this patch once upstream drops
+zend_atomic for C11 atomics, so the build picks the fix up on its own. Delete this file
+and that block once the skip branch is what fires.
+
+--- a/frankenphp.h
++++ b/frankenphp.h
+@@ -20,6 +20,16 @@
+ #include <stdbool.h>
+ #include <stdint.h>
+
++#if __has_include(<Zend/zend_atomic.h>)
++#include <Zend/zend_atomic.h>
++#else
++/* php-src 37d0ef5a6 dropped zend_atomic.h; EG(vm_interrupt)/EG(timed_out) are C11 atomic_bool. */
++#include <stdatomic.h>
++typedef atomic_bool zend_atomic_bool;
++#define zend_atomic_bool_store(obj, desired) atomic_store(obj, desired)
++#define zend_atomic_bool_load(obj) atomic_load(obj)
++#endif
++
+ #ifndef PHP_WIN32
+ #include <pthread.h>
+ #include <signal.h>
