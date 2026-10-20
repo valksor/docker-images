@@ -46,8 +46,7 @@ RUN     \
         libreadline-dev libncurses-dev \
 &&      chmod -R 1777 /usr/local/bin \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
-&&      [ ! -d /var/www/html ]; \
-        mkdir --parents /var/www/html \
+&&      mkdir --parents /var/www/html \
 &&      chown valksor:valksor /var/www/html \
 &&      chmod 1777 -R /var/www/html \
 &&      export \
