@@ -145,7 +145,7 @@ ARG     PHP_VERSION
 LABEL org.opencontainers.image.title="Valksor FrankenPHP Testing" \
     org.opencontainers.image.description="FrankenPHP - Modern PHP application server with Xdebug and PCOV" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="BSD-3-Clause AND MIT AND Apache-2.0"
+    org.opencontainers.image.licenses="BSD-3-Clause AND MIT"
 
 USER    root
 
