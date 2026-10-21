@@ -95,7 +95,7 @@
         "source": "/tmp/extensions/grpc/src/php/ext/grpc",
         "enable": true,
         "configure": "--enable-grpc=/tmp/extensions/grpc",
-        "env": "GRPC_LIB_SUBDIR=libs/opt",
+        "env": "GRPC_LIB_SUBDIR=libs/opt PHP_RPATH=no",
         "scripts": [
             "echo grpc.enable_fork_support = 1 >> /usr/local/etc/php/conf.d/docker-php-ext-grpc.ini",
             "echo grpc.poll_strategy = epoll1 >> /usr/local/etc/php/conf.d/docker-php-ext-grpc.ini"

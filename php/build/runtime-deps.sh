@@ -15,6 +15,10 @@ if grep 'not found' /var/tmp/ldd.out; then
     echo 'ldd: unresolved libraries' >&2
     exit 1
 fi
+if grep '=> /tmp/' /var/tmp/ldd.out; then
+    echo 'ldd: library resolved from /tmp (RPATH/RUNPATH into the build tree)' >&2
+    exit 1
+fi
 # adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
 if ! awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
     | sort -u | xargs -r dpkg-query --search \
