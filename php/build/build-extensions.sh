@@ -26,7 +26,8 @@ while IFS= read -r extension; do
         echo "Building extension: ${extension}"
         echo "========================================="
 
-        if (
+        set +e
+        (
             set -eux
 
             configure_flags=$(jq -r '.["'"${extension}"'"].configure' extensions.json)
@@ -71,16 +72,23 @@ while IFS= read -r extension; do
             fi
             mkdir --parents "${license_dir}"
             license_found=0
+            shopt -s nocaseglob
             for license_source in "${license_dirs[@]}"; do
-                for license_candidate in "${license_source}"/LICENSE* "${license_source}"/LICENCE* "${license_source}"/COPYING*; do
+                for license_candidate in "${license_source}"/LICENSE* "${license_source}"/LICENCE* "${license_source}"/COPYING* "${license_source}"/NOTICE*; do
                     if [[ -f "${license_candidate}" ]]; then
-                        cp -v "${license_candidate}" "${license_dir}/"
+                        license_target="${license_dir}/$(basename "${license_candidate}")"
+                        if [[ "${license_source}" == "${checkout_dir}" && -e "${license_target}" ]]; then
+                            license_target="${license_dir}/repo-$(basename "${license_candidate}")"
+                        fi
+                        cp -v "${license_candidate}" "${license_target}" || exit 1
                         license_found=1
                     fi
                 done
             done
+            shopt -u nocaseglob
             if [[ "${license_found}" -eq 0 ]]; then
-                echo "WARNING: no license file found for ${extension}" >&2
+                echo "no license file found for ${extension}" >&2
+                exit 1
             fi
 
             docker-php-ext-enable ${extension}
@@ -102,7 +110,10 @@ while IFS= read -r extension; do
             if [[ -n "${remove}" && "${remove}" != "null" ]]; then
                 apt-get purge -y ${remove}
             fi
-        ); then
+        )
+        rc=$?
+        set -e
+        if [[ ${rc} -eq 0 ]]; then
             echo "SUCCESS: ${extension}"
         else
             echo "FAILED: ${extension}"
