@@ -87,8 +87,25 @@ while IFS= read -r extension; do
             done
             shopt -u nocaseglob
             if [[ "${license_found}" -eq 0 ]]; then
-                echo "no license file found for ${extension}" >&2
-                exit 1
+                composer_license=""
+                for composer_candidate in "${source_dir}/composer.json" "${checkout_dir}/composer.json"; do
+                    if [[ -f "${composer_candidate}" ]]; then
+                        composer_license="$(jq -r '.license | if type == "string" then . elif type == "array" then join(" OR ") else empty end' "${composer_candidate}")"
+                        if [[ -n "${composer_license}" ]]; then
+                            break
+                        fi
+                    fi
+                done
+                if [[ -n "${composer_license}" ]]; then
+                    {
+                        echo "SPDX-License-Identifier: ${composer_license}"
+                        echo 'Upstream ships no license file; license declared in composer.json'
+                    } > "${license_dir}/LICENSE-SPDX"
+                    echo "NOTE: no license file for ${extension}; wrote ${license_dir}/LICENSE-SPDX from composer.json (${composer_license})" >&2
+                else
+                    echo "no license file found for ${extension}" >&2
+                    exit 1
+                fi
             fi
 
             docker-php-ext-enable ${extension}
