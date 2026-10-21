@@ -2,12 +2,10 @@
 
 set -euo pipefail
 
-{
-    find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null
-    if [ "$#" -gt 0 ]; then
-        ldd "$@"
-    fi
-} > /var/tmp/ldd.out
+find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' > /var/tmp/ldd.out 2>/dev/null || { echo 'runtime-deps: ldd scan of /usr/local failed' >&2; exit 1; }
+if [ "$#" -gt 0 ]; then
+    ldd "$@" >> /var/tmp/ldd.out || { echo 'runtime-deps: ldd of extra binaries failed' >&2; exit 1; }
+fi
 
 if grep -i libreadline /var/tmp/ldd.out; then
     echo 'GPL libreadline is linked' >&2
@@ -18,9 +16,12 @@ if grep 'not found' /var/tmp/ldd.out; then
     exit 1
 fi
 # adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
-awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
+if ! awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
     | sort -u | xargs -r dpkg-query --search \
-    | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps
+    | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps; then
+    echo 'runtime-deps: dpkg-query could not map every library to a package' >&2
+    exit 1
+fi
 if ! test -s /var/tmp/runtime-deps; then
     echo 'runtime-deps empty: ldd scan found no dpkg-owned libraries' >&2
     exit 1
