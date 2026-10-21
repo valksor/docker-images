@@ -19,7 +19,7 @@ fi
 if ! awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
     | sort -u | xargs -r dpkg-query --search \
     | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps; then
-    echo 'runtime-deps: dpkg-query could not map every library to a package' >&2
+    echo 'runtime-deps: library-to-package mapping failed (awk/sort/xargs/dpkg-query); most often dpkg-query could not find the package owning a library' >&2
     exit 1
 fi
 if ! test -s /var/tmp/runtime-deps; then
