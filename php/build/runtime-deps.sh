@@ -15,10 +15,14 @@ if grep 'not found' /var/tmp/ldd.out; then
     echo 'ldd: unresolved libraries' >&2
     exit 1
 fi
-if grep '=> /tmp/' /var/tmp/ldd.out; then
-    echo 'ldd: library resolved from /tmp (RPATH/RUNPATH into the build tree)' >&2
-    exit 1
-fi
+while IFS= read -r -d '' f; do
+    # non-ELF files (scripts) make readelf fail; ldd above already covered the ELF ones
+    d="$(readelf -d "$f" 2>/dev/null)" || continue
+    if grep -E '\(R(UN)?PATH\).*(\[|:)/(var/)?tmp/' <<<"$d"; then
+        echo "runtime-deps: $f has an RPATH/RUNPATH into world-writable /tmp or /var/tmp" >&2
+        exit 1
+    fi
+done < <(find /usr/local -type f \( -executable -o -name '*.so*' \) -print0)
 # adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
 if ! awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
     | sort -u | xargs -r dpkg-query --search \
