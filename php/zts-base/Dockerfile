@@ -107,6 +107,7 @@ RUN     \
 &&      make clean \
 &&      mkdir --parents "$PHP_INI_DIR" \
 &&      cp -v php.ini-* "$PHP_INI_DIR/" \
+&&      mkdir --parents /usr/local/share/doc/php && cp -v LICENSE /usr/local/share/doc/php/LICENSE \
 &&      cd / \
 &&      php --version \
 &&      docker-php-ext-enable sodium \
@@ -243,6 +244,7 @@ RUN     \
 &&      git config --global --add safe.directory "*" \
 &&      chown -R valksor:valksor /home/valksor \
 &&      chown valksor:valksor /var/www/preload.php \
+&&      { [ -s /usr/local/share/doc/php/LICENSE ] || { echo 'php LICENSE is missing or empty' >&2; exit 1; }; } \
 &&      out="$(php -m 2>&1)" \
 &&      if grep -qE 'PHP Startup|Unable to load|Fatal' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget "$(php-config --extension-dir)"/*.so)" \

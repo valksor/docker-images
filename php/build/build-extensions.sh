@@ -62,6 +62,27 @@ while IFS= read -r extension; do
             fi
             make install
 
+            license_dir="/usr/local/share/doc/php-ext/${extension}"
+            checkout_dir="${source_dir#/tmp/extensions/}"
+            checkout_dir="/tmp/extensions/${checkout_dir%%/*}"
+            license_dirs=("${source_dir}")
+            if [[ "${checkout_dir%/}" != "${source_dir%/}" ]]; then
+                license_dirs+=("${checkout_dir}")
+            fi
+            mkdir --parents "${license_dir}"
+            license_found=0
+            for license_source in "${license_dirs[@]}"; do
+                for license_candidate in "${license_source}"/LICENSE* "${license_source}"/LICENCE* "${license_source}"/COPYING*; do
+                    if [[ -f "${license_candidate}" ]]; then
+                        cp -v "${license_candidate}" "${license_dir}/"
+                        license_found=1
+                    fi
+                done
+            done
+            if [[ "${license_found}" -eq 0 ]]; then
+                echo "WARNING: no license file found for ${extension}" >&2
+            fi
+
             docker-php-ext-enable ${extension}
 
             if (jq -e '.["'"${extension}"'"].scripts | type == "array"' /tmp/extensions.json); then

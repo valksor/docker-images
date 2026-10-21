@@ -136,7 +136,7 @@ PHP image notes:
   - To confirm the path, run `docker exec <container> php-fpm-healthcheck -v` and look for a `pool:` line in the output.
   - Metric options (for example `--listen-queue=10`) enforce thresholds only when the status page is reachable.
   - Compose healthcheck: `test: ["CMD", "php-fpm-healthcheck"]`.
-- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.) and `php/healthcheck` (MIT, Renato Mefi). The image license label covers only those files, not the bundled PHP runtime: the runtime is BSD-3-Clause on the master/8.6 branch and PHP-3.01 on 8.5 and older. Other bundled software keeps its own license.
+- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.) and `php/healthcheck` (MIT, Renato Mefi). The image license label (`BSD-3-Clause AND MIT`) covers this repo's files, including those vendored MIT files, not the bundled PHP runtime or other software: the runtime is BSD-3-Clause on the master/8.6 branch and PHP-3.01 on 8.5 and older, and its license ships in the image at `/usr/local/share/doc/php/LICENSE`; extension licenses ship under `/usr/local/share/doc/php-ext/`. Other bundled software keeps its own license.
 
 ### PHP-ZTS Variants
 
