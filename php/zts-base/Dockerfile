@@ -110,10 +110,6 @@ RUN     \
 &&      mkdir --parents "$PHP_INI_DIR" \
 &&      cp -v php.ini-* "$PHP_INI_DIR/" \
 &&      cd / \
-&&      pecl update-channels \
-&&      rm -rf \
-            /tmp/pear \
-            ~/.pearrc \
 &&      php --version \
 &&      docker-php-ext-enable sodium \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
