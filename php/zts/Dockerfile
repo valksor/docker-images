@@ -24,6 +24,7 @@ COPY    php/docker/docker-php-source            /usr/local/bin/docker-php-source
 
 COPY    php/build/build-extensions.sh           /tmp/build-extensions.sh
 COPY    php/build/extensions.json               /tmp/extensions.json
+COPY    php/build/runtime-deps.sh               /tmp/runtime-deps.sh
 
 COPY    --from=composer:2                       /usr/bin/composer /usr/bin/
 
@@ -84,15 +85,7 @@ RUN     \
 &&      (strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true) \
 &&      ldconfig \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
-&&      find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' > /var/tmp/ldd.out 2>/dev/null \
-&&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
-# adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
-&&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
-        | sort -u | xargs -r dpkg-query --search \
-        | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps \
-&&      { test -s /var/tmp/runtime-deps || { echo 'runtime-deps empty: ldd scan found no dpkg-owned libraries' >&2; exit 1; }; } \
-&&      cat /var/tmp/runtime-deps \
-&&      rm /var/tmp/ldd.out \
+&&      bash /tmp/runtime-deps.sh \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
 &&      rm -rf \

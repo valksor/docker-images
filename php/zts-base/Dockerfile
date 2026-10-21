@@ -24,6 +24,7 @@ COPY    php/docker/docker-php-ext-configure     /usr/local/bin/docker-php-ext-co
 COPY    php/docker/docker-php-ext-enable        /usr/local/bin/docker-php-ext-enable
 COPY    php/docker/docker-php-ext-install       /usr/local/bin/docker-php-ext-install
 COPY    php/docker/docker-php-source            /usr/local/bin/docker-php-source
+COPY    php/build/runtime-deps.sh               /tmp/runtime-deps.sh
 
 STOPSIGNAL SIGQUIT
 
@@ -116,16 +117,7 @@ RUN     \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
 &&      ldconfig \
-&&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
-&&      if grep -i libreadline /var/tmp/ldd.out; then echo 'GPL libreadline is linked' >&2; exit 1; fi \
-&&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
-# adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
-&&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
-        | sort -u | xargs -r dpkg-query --search \
-        | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps \
-&&      { test -s /var/tmp/runtime-deps || { echo 'runtime-deps empty: ldd scan found no dpkg-owned libraries' >&2; exit 1; }; } \
-&&      cat /var/tmp/runtime-deps \
-&&      rm /var/tmp/ldd.out \
+&&      bash /tmp/runtime-deps.sh /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget \
 &&      mkdir --parents /var/lib/php/sessions \
 &&      chown -R valksor:valksor /var/lib/php/sessions \
 &&      mkdir --parents /var/lib/php/opcache \
