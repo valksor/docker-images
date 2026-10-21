@@ -81,7 +81,6 @@ RUN     \
             --enable-soap \
             --enable-sockets \
             --enable-zts \
-            --enable-zend-max-execution-timers \
             --disable-zend-signals \
             --with-bz2 \
             --with-curl \
@@ -112,6 +111,7 @@ RUN     \
 &&      cd / \
 &&      php --version \
 &&      docker-php-ext-enable sodium \
+&&      (php -i | grep -i 'max execution timers' || true) \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      chmod -R 1777 /usr/local/bin \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
