@@ -111,6 +111,7 @@ RUN     \
             /tmp/pear \
             ~/.pearrc \
 &&      php --version \
+&&      docker-php-ext-enable sodium \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      chmod -R 1777 /usr/local/bin \
 &&      mkdir --parents --mode=777 --verbose /run/php-fpm \

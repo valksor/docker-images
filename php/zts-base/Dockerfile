@@ -112,6 +112,7 @@ RUN     \
             /tmp/pear \
             ~/.pearrc \
 &&      php --version \
+&&      docker-php-ext-enable sodium \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      chmod -R 1777 /usr/local/bin \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
