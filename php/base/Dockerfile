@@ -276,6 +276,27 @@ RUN     \
 &&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
 &&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 
+ENV     FCGI_STATUS_PATH=/fpm/status
+
+RUN     \
+        set -eux; \
+        php-fpm -D; \
+        trap 'kill "$(cat /run/php-fpm/php-fpm.pid 2>/dev/null)" 2>/dev/null || :' EXIT; \
+        ok=0; out=''; \
+        for i in $(seq 1 20); do if out="$(php-fpm-healthcheck -v 2>&1)" && grep -q '^pool:' <<<"$out"; then ok=1; break; fi; sleep 0.5; done; \
+        if [ "$ok" != 1 ]; then echo "healthcheck: no status page at $FCGI_STATUS_PATH: $out" >&2; exit 1; fi; \
+# option parsing (getopt) and cgi-fcgi work; this does not prove the path, the pool: check above does
+        php-fpm-healthcheck --listen-queue=1000; \
+# negative control: the old default path must not serve the status page
+        out="$(FCGI_STATUS_PATH=/status php-fpm-healthcheck -v 2>&1 || :)"; \
+        if grep -q '^pool:' <<<"$out"; then echo 'healthcheck: /status unexpectedly serves the status page' >&2; exit 1; fi; \
+        pid="$(cat /run/php-fpm/php-fpm.pid)"; \
+        kill "$pid"; \
+        n=0; while kill -0 "$pid" 2>/dev/null && [ "$n" -lt 50 ]; do sleep 0.1; n=$((n+1)); done; \
+        if kill -0 "$pid" 2>/dev/null; then echo 'php-fpm did not stop' >&2; exit 1; fi; \
+        rm -f /run/php-fpm/php-fpm.pid; \
+        trap - EXIT
+
 USER    valksor
 
 STOPSIGNAL SIGQUIT
