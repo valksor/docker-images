@@ -102,6 +102,9 @@ RUN     \
 &&      make -j"$jobs" \
 &&      find -type f -name '*.a' -delete \
 &&      make install \
+&&      (strip --strip-all /usr/local/bin/php /usr/local/sbin/php-fpm "$(php-config --extension-dir)"/*.so || :) \
+&&      s="$(readelf -S /usr/local/bin/php)" \
+&&      ! grep -q '\.symtab' <<<"$s" \
 &&      make clean \
 &&      mkdir --parents "$PHP_INI_DIR" \
 &&      cp -v php.ini-* "$PHP_INI_DIR/" \
