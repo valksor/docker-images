@@ -126,6 +126,18 @@ docker exec php-app php -m
 
 Note: the `sodium` extension is loaded by default. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, install build tools first (`apt-get install -y build-essential autoconf`), then run `phpize && ./configure && make install` from the extension source — or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions.
 
+PHP image notes:
+
+- `php -a` and the `readline` functions use libedit, like the official PHP images. Configure line editing in `~/.editrc` (not `~/.inputrc`); some `readline_*` functions behave differently under libedit, see the [readline documentation](https://www.php.net/manual/en/book.readline.php).
+- `/usr/local/bin` is root-only. Install your own tools as root in a derived image, or into a directory you own and add to `PATH`.
+- `php-fpm-healthcheck` (FPM images):
+  - It is preconfigured for `/fpm/status`. If you change `pm.status_path`, set `FCGI_STATUS_PATH` to match.
+  - The script only checks that FPM answers. It does not notice a wrong path, because FPM answers "Access denied." and that still counts as healthy.
+  - To confirm the path, run `docker exec <container> php-fpm-healthcheck -v` and look for a `pool:` line in the output.
+  - Metric options (for example `--listen-queue=10`) enforce thresholds only when the status page is reachable.
+  - Compose healthcheck: `test: ["CMD", "php-fpm-healthcheck"]`.
+- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.) and `php/healthcheck` (MIT, Renato Mefi). The image license label covers only those files, not the bundled PHP runtime: the runtime is BSD-3-Clause on the master/8.6 branch and PHP-3.01 on 8.5 and older. Other bundled software keeps its own license.
+
 ### PHP-ZTS Variants
 
 Thread-safe PHP for parallel execution and embedded applications:
