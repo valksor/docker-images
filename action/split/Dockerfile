@@ -5,7 +5,7 @@ ARG     CACHE_BUSTER=default
 LABEL org.opencontainers.image.title="Valksor Split Action" \
     org.opencontainers.image.description="GitHub Action for splitting monorepo" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause"
 
 ENV     container=docker
 ENV     DEBIAN_FRONTEND=noninteractive

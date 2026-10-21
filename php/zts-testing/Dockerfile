@@ -77,7 +77,7 @@ ARG     PHP_VERSION
 LABEL org.opencontainers.image.title="Valksor PHP ZTS Testing" \
     org.opencontainers.image.description="Optimized PHP ZTS testing image with Xdebug and PCOV" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause AND MIT"
 
 USER    root
 

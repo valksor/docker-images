@@ -125,7 +125,7 @@ ARG     PHP_VERSION
 LABEL org.opencontainers.image.title="Valksor PHP FPM" \
     org.opencontainers.image.description="Optimized PHP-FPM image with extensions" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause AND MIT"
 
 USER    root
 

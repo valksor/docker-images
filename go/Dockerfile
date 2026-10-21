@@ -14,7 +14,7 @@ ARG GO_ROOT
 LABEL org.opencontainers.image.title="Valksor Go" \
     org.opencontainers.image.description="Go development image" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause"
 
 USER root
 

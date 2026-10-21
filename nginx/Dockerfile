@@ -14,7 +14,7 @@ SHELL   ["/bin/bash", "-o", "pipefail", "-c"]
 LABEL org.opencontainers.image.title="Valksor Nginx" \
     org.opencontainers.image.description="Optimized Nginx image" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause"
 
 
 COPY    global/01_nodoc  /etc/dpkg/dpkg.cfg.d/01_nodoc

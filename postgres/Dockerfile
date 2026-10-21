@@ -10,7 +10,7 @@ ARG     CACHE_BUSTER=default
 LABEL org.opencontainers.image.title="Valksor Postgres ${VERSION}" \
     org.opencontainers.image.description="Optimized Postgres ${VERSION} image" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause"
 
 SHELL   ["/bin/bash", "-o", "pipefail", "-c"]
 
