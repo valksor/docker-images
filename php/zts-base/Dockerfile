@@ -118,7 +118,7 @@ RUN     \
 &&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
 &&      if grep -i libreadline /var/tmp/ldd.out; then exit 1; fi \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
-# adapted from docker-library/php Dockerfile-linux.template (MIT)
+# adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
 &&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
         | sort -u | xargs -r dpkg-query --search \
         | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps \
@@ -234,6 +234,7 @@ RUN     \
 
 COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 COPY    php/preload.php /var/www/preload.php
+COPY    php/docker/LICENSE /usr/share/doc/docker-library-php/LICENSE
 
 
 RUN     \

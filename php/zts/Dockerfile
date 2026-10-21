@@ -86,7 +86,7 @@ RUN     \
 &&      chmod -R 1777 /usr/local/bin \
 &&      find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' > /var/tmp/ldd.out 2>/dev/null \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
-# adapted from docker-library/php Dockerfile-linux.template (MIT)
+# adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
 &&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
         | sort -u | xargs -r dpkg-query --search \
         | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps \
