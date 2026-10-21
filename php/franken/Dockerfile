@@ -110,13 +110,16 @@ RUN     \
 &&      cp /go/src/app/LICENSE /usr/local/share/doc/frankenphp/LICENSE \
 &&      watcher_license="$(find /usr/local/src/watcher -maxdepth 1 -type f -iname 'LICENSE*' -print -quit)" \
 &&      if [ -z "$watcher_license" ]; then echo 'watcher: no LICENSE file in /usr/local/src/watcher' >&2; exit 1; fi \
-&&      cp "$watcher_license" /usr/local/share/doc/watcher/ \
+&&      cp "$watcher_license" /usr/local/share/doc/watcher/LICENSE \
 &&      go_mod_info="$(go version -m /usr/local/bin/frankenphp)" \
 &&      caddy_version="$(printf '%s\n' "$go_mod_info" | awk '$2 == "github.com/caddyserver/caddy/v2" { print $3 }')" \
 &&      if [ -z "$caddy_version" ]; then echo 'caddy: version not found in frankenphp build info' >&2; exit 1; fi \
 &&      caddy_license="$(go env GOMODCACHE)/github.com/caddyserver/caddy/v2@${caddy_version}/LICENSE" \
 &&      if [ ! -f "$caddy_license" ]; then echo "caddy: no LICENSE at $caddy_license" >&2; exit 1; fi \
 &&      cp "$caddy_license" /usr/local/share/doc/caddy/ \
+&&      for caddy_notice in "$(dirname "$caddy_license")"/NOTICE*; do \
+            if [ -f "$caddy_notice" ]; then cp "$caddy_notice" /usr/local/share/doc/caddy/; fi \
+        done \
 &&      setcap cap_net_bind_service=+ep /usr/local/bin/frankenphp \
 &&      /usr/local/bin/frankenphp version
 
@@ -142,7 +145,7 @@ ARG     PHP_VERSION
 LABEL org.opencontainers.image.title="Valksor FrankenPHP" \
     org.opencontainers.image.description="FrankenPHP - Modern PHP application server with extensions" \
     org.opencontainers.image.source="https://github.com/valksor/docker-images" \
-    org.opencontainers.image.licenses="BSD-3-Clause AND MIT"
+    org.opencontainers.image.licenses="BSD-3-Clause AND MIT AND Apache-2.0"
 
 USER    root
 
@@ -188,7 +191,7 @@ RUN     \
 &&      out="$(ldd /usr/local/bin/frankenphp)" \
 &&      if grep 'not found' <<<"$out"; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
 &&      if grep -i readline <<<"$out"; then echo 'GPL libreadline is linked' >&2; exit 1; fi \
-&&      for shipped_license in /usr/local/share/doc/frankenphp/LICENSE /usr/local/share/doc/caddy/LICENSE /usr/local/share/doc/watcher/LICENSE*; do \
+&&      for shipped_license in /usr/local/share/doc/frankenphp/LICENSE /usr/local/share/doc/caddy/LICENSE /usr/local/share/doc/watcher/LICENSE; do \
             if [ ! -s "$shipped_license" ]; then echo "missing or empty license: $shipped_license" >&2; exit 1; fi \
         done
 
