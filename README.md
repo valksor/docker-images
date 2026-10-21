@@ -124,7 +124,7 @@ docker exec php-app php -v
 docker exec php-app php -m
 ```
 
-Note: the `sodium` extension is loaded by default; derived images that enable `sodium` themselves should drop that line (the image already ships `conf.d/docker-php-ext-sodium.ini`) to avoid a "Module already loaded" warning. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, switch to `USER root` and run `apt-get update && apt-get install -y build-essential autoconf` first (package lists are removed in the images), then run `phpize && ./configure && make install` from the extension source, then switch back to `USER valksor`, or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions.
+Note: the `sodium` extension is loaded by default; derived images that enable `sodium` themselves should drop that line (the image already ships `conf.d/docker-php-ext-sodium.ini`) to avoid a "Module already loaded" warning. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, switch to `USER root` and run `apt-get update && apt-get install -y build-essential autoconf` first (package lists are removed in the images), then either run `phpize && ./configure && make install` from the extension source or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions, and in both cases switch back to `USER valksor`.
 
 PHP image notes:
 
