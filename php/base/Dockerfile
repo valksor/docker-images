@@ -43,7 +43,7 @@ RUN     \
 &&      apt-get install -y --no-install-recommends --allow-downgrades libxml2-dev libssl-dev libsqlite3-dev libbz2-dev libidn2-dev libzstd-dev \
         libbrotli-dev libpsl-dev libgsasl-dev librtmp-dev libnghttp2-dev libnghttp3-dev libonig-dev libpq-dev libsodium-dev libargon2-dev libtidy-dev \
         libzip-dev libgmp-dev zlib1g-dev libffi-dev libssh2-1-dev libldap-dev libxslt1-dev libicu-dev libexif-dev libheif-dev liblzma-dev libwebp-dev \
-        libreadline-dev libncurses-dev \
+        libedit-dev libncurses-dev \
 &&      chmod -R 1777 /usr/local/bin \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      mkdir --parents /var/www/html \
@@ -97,7 +97,7 @@ RUN     \
             --with-valgrind \
             --with-xsl \
             --with-zlib \
-            --with-readline \
+            --with-libedit \
 &&      make -j"$jobs" \
 &&      find -type f -name '*.a' -delete \
 &&      make install \
@@ -118,6 +118,7 @@ RUN     \
 &&      chmod +x /usr/local/bin/php-fpm-healthcheck \
 &&      chown www-data:www-data /usr/local/bin/php-fpm-healthcheck \
 &&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
+&&      if grep -i libreadline /var/tmp/ldd.out; then exit 1; fi \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
 # adapted from docker-library/php Dockerfile-linux.template (MIT)
 &&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
@@ -264,7 +265,12 @@ RUN     \
 &&      out="$(ldd /usr/local/bin/php /usr/local/sbin/php-fpm /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      php -r 'foreach (["sodium"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
-&&      php-fpm -v
+&&      php-fpm -v \
+&&      r="$(php --ri readline)" \
+&&      grep -q 'EditLine wrapper' <<<"$r" \
+&&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
+&&      out="$(ldd /usr/local/bin/php)" \
+&&      if grep -i readline <<<"$out"; then exit 1; fi
 
 USER    valksor
 

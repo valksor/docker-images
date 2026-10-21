@@ -195,7 +195,12 @@ RUN     \
 &&      if grep -qE 'PHP Startup|Unable to load|Fatal' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
-&&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }'
+&&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
+&&      r="$(php --ri readline)" \
+&&      grep -q 'EditLine wrapper' <<<"$r" \
+&&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
+&&      out="$(ldd /usr/local/bin/php)" \
+&&      if grep -i readline <<<"$out"; then exit 1; fi
 
 USER    valksor
 

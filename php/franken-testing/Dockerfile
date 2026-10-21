@@ -30,7 +30,7 @@ RUN     \
             libcap2-bin \
             make libc-dev libc6-dev gcc g++ \
             cmake git libargon2-dev libbrotli-dev libcurl4-openssl-dev \
-            libonig-dev libreadline-dev libsodium-dev libsqlite3-dev \
+            libonig-dev libedit-dev libsodium-dev libsqlite3-dev \
             libssl-dev libxml2-dev zlib1g-dev
 
 # Install e-dant/watcher for file watching support
@@ -92,7 +92,7 @@ RUN     \
 ENV     CGO_ENABLED=1
 ENV     CGO_CFLAGS="-DFRANKENPHP_VERSION=${FRANKENPHP_VERSION} -I/usr/local/include/php -I/usr/local/include/php/main -I/usr/local/include/php/Zend -I/usr/local/include/php/TSRM -I/usr/local/include/php/ext ${PHP_CFLAGS}"
 ENV     CGO_CPPFLAGS="-I/usr/local/include/php -I/usr/local/include/php/main -I/usr/local/include/php/Zend -I/usr/local/include/php/TSRM -I/usr/local/include/php/ext ${PHP_CPPFLAGS}"
-ENV     CGO_LDFLAGS="-L/usr/local/lib -lphp -lssl -lcrypto -lreadline -largon2 -lcurl -lonig -lz ${PHP_LDFLAGS}"
+ENV     CGO_LDFLAGS="-L/usr/local/lib -lphp -lssl -lcrypto -ledit -largon2 -lcurl -lonig -lz ${PHP_LDFLAGS}"
 
 # Install xcaddy and build FrankenPHP
 RUN     \
@@ -118,7 +118,7 @@ RUN     \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
             make libc-dev libc6-dev gcc g++ cmake git \
             libargon2-dev libbrotli-dev libcurl4-openssl-dev libonig-dev \
-            libreadline-dev libsodium-dev libsqlite3-dev libssl-dev \
+            libedit-dev libsodium-dev libsqlite3-dev libssl-dev \
             libxml2-dev zlib1g-dev \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
             /usr/local/src/watcher /root/go /usr/local/go
@@ -170,7 +170,9 @@ RUN     \
 &&      setcap cap_net_bind_service=+ep /usr/local/bin/frankenphp \
 &&      /usr/local/bin/frankenphp version \
 &&      mkdir -p /config /data /var/log/caddy \
-&&      chown -R valksor:valksor /config /data /var/log/caddy
+&&      chown -R valksor:valksor /config /data /var/log/caddy \
+&&      out="$(ldd /usr/local/bin/frankenphp)" \
+&&      if grep -i readline <<<"$out"; then exit 1; fi
 
 USER    valksor
 
