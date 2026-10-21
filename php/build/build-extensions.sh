@@ -116,7 +116,7 @@ while IFS= read -r extension; do
 done < <(jq -r 'keys[]' extensions.json)
 
 # strip debug symbols from all built extensions
-find "$(php-config --extension-dir)" -name '*.so' -exec strip --strip-all '{}' + || :
+find "$(php-config --extension-dir)" -name '*.so' -exec strip --strip-all '{}' +
 
 if [[ ${#failed_extensions[@]} -gt 0 ]]; then
     echo ""

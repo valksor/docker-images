@@ -172,7 +172,8 @@ RUN     \
 &&      mkdir -p /config /data /var/log/caddy \
 &&      chown -R valksor:valksor /config /data /var/log/caddy \
 &&      out="$(ldd /usr/local/bin/frankenphp)" \
-&&      if grep -i readline <<<"$out"; then exit 1; fi
+&&      if grep 'not found' <<<"$out"; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
+&&      if grep -i readline <<<"$out"; then echo 'GPL libreadline is linked' >&2; exit 1; fi
 
 USER    valksor
 

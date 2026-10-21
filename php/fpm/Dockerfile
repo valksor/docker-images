@@ -187,17 +187,18 @@ RUN     \
             /usr/lib/python3.*/__phello__ \
             /usr/lib/python3.*/__hello__.py \
             ~/.pearrc \
-&&      out="$(php -m 2>&1)" \
-&&      if grep -qE 'PHP Startup|Unable to load|Fatal' <<<"$out"; then echo "$out" >&2; exit 1; fi \
+&&      out="$(php -d display_errors=stderr -d display_startup_errors=1 -d log_errors=0 -m 2>&1)" \
+&&      if grep -qE 'PHP Startup|Unable to load|Fatal|already loaded' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/sbin/php-fpm "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
 &&      php-fpm -v \
+&&      php-fpm -t \
 &&      r="$(php --ri readline)" \
-&&      grep -q 'EditLine wrapper' <<<"$r" \
-&&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
+&&      if ! grep -q 'EditLine wrapper' <<<"$r"; then echo 'readline is not built against libedit' >&2; exit 1; fi \
+&&      if ! php -r 'exit(function_exists("readline") ? 0 : 1);'; then echo 'readline() is missing' >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php)" \
-&&      if grep -i readline <<<"$out"; then exit 1; fi \
+&&      if grep -i readline <<<"$out"; then echo 'GPL libreadline is linked' >&2; exit 1; fi \
 &&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
 &&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 

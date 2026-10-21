@@ -101,9 +101,8 @@ RUN     \
 &&      make -j"$jobs" \
 &&      find -type f -name '*.a' -delete \
 &&      make install \
-&&      (strip --strip-all /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so || :) \
-&&      s="$(readelf -S /usr/local/bin/php)" \
-&&      ! grep -q '\.symtab' <<<"$s" \
+&&      strip --strip-all /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so \
+&&      for f in /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so; do s="$(readelf -S "$f")" || exit 1; if grep -q '\.symtab' <<<"$s"; then echo "strip left .symtab in $f" >&2; exit 1; fi; done \
 &&      make clean \
 &&      mkdir --parents "$PHP_INI_DIR" \
 &&      cp -v php.ini-* "$PHP_INI_DIR/" \
@@ -111,13 +110,14 @@ RUN     \
 &&      cd / \
 &&      php --version \
 &&      docker-php-ext-enable sodium \
-&&      (php -i | grep -i 'max execution timers' || true) \
+&&      out="$(php -i)" \
+&&      if ! grep -q 'Zend Max Execution Timers => enabled' <<<"$out"; then echo 'Zend max execution timers are not enabled' >&2; exit 1; fi \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
 &&      ldconfig \
 &&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
-&&      if grep -i libreadline /var/tmp/ldd.out; then exit 1; fi \
+&&      if grep -i libreadline /var/tmp/ldd.out; then echo 'GPL libreadline is linked' >&2; exit 1; fi \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
 # adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
 &&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
@@ -245,16 +245,16 @@ RUN     \
 &&      chown -R valksor:valksor /home/valksor \
 &&      chown valksor:valksor /var/www/preload.php \
 &&      { [ -s /usr/local/share/doc/php/LICENSE ] || { echo 'php LICENSE is missing or empty' >&2; exit 1; }; } \
-&&      out="$(php -m 2>&1)" \
-&&      if grep -qE 'PHP Startup|Unable to load|Fatal' <<<"$out"; then echo "$out" >&2; exit 1; fi \
+&&      out="$(php -d display_errors=stderr -d display_startup_errors=1 -d log_errors=0 -m 2>&1)" \
+&&      if grep -qE 'PHP Startup|Unable to load|Fatal|already loaded' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      php -r 'foreach (["sodium"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
 &&      r="$(php --ri readline)" \
-&&      grep -q 'EditLine wrapper' <<<"$r" \
-&&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
+&&      if ! grep -q 'EditLine wrapper' <<<"$r"; then echo 'readline is not built against libedit' >&2; exit 1; fi \
+&&      if ! php -r 'exit(function_exists("readline") ? 0 : 1);'; then echo 'readline() is missing' >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php)" \
-&&      if grep -i readline <<<"$out"; then exit 1; fi \
+&&      if grep -i readline <<<"$out"; then echo 'GPL libreadline is linked' >&2; exit 1; fi \
 &&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
 &&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 
