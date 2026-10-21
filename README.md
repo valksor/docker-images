@@ -124,6 +124,8 @@ docker exec php-app php -v
 docker exec php-app php -m
 ```
 
+Note: the `sodium` extension is loaded by default. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, install build tools first (`apt-get install -y build-essential autoconf`), then run `phpize && ./configure && make install` from the extension source — or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions.
+
 ### PHP-ZTS Variants
 
 Thread-safe PHP for parallel execution and embedded applications:
