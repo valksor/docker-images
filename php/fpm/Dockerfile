@@ -80,7 +80,16 @@ RUN     \
 &&      chmod +x /tmp/build-extensions.sh \
 &&      /tmp/build-extensions.sh \
 &&      cp /tmp/extensions/grpc/libs/opt/libgrpc*.so* /usr/local/lib/ \
-&&      (strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true) \
+&&      shopt -s nocaseglob \
+&&      for third_party_dir in /tmp/extensions/grpc/third_party/*/; do \
+            license_out="/usr/local/share/doc/php-ext/grpc/third_party/$(basename "${third_party_dir}")" \
+            && { mkdir --parents "${license_out}" || exit 1; } \
+            && for license_file in "${third_party_dir}"LICENSE* "${third_party_dir}"LICENCE* "${third_party_dir}"COPYING* "${third_party_dir}"NOTICE*; do \
+                if [[ -f "${license_file}" ]]; then cp -v "${license_file}" "${license_out}/" || exit 1; fi \
+            done \
+        ; done \
+&&      shopt -u nocaseglob \
+&&      strip --strip-unneeded /usr/local/lib/libgrpc*.so* \
 &&      ldconfig \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      bash /tmp/runtime-deps.sh \
