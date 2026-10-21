@@ -16,9 +16,9 @@ if grep 'not found' /var/tmp/ldd.out; then
     exit 1
 fi
 while IFS= read -r -d '' f; do
-    # non-ELF files (scripts) make readelf fail; ldd above already covered the ELF ones
+    # readelf fails on non-ELF files (scripts, phars); skip them
     d="$(readelf -d "$f" 2>/dev/null)" || continue
-    if grep -E '\(R(UN)?PATH\).*(\[|:)/(var/)?tmp/' <<<"$d"; then
+    if grep -E '\(R(UN)?PATH\).*(\[|:)/(var/)?tmp(/|:|\])' <<<"$d"; then
         echo "runtime-deps: $f has an RPATH/RUNPATH into world-writable /tmp or /var/tmp" >&2
         exit 1
     fi
