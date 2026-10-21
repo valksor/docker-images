@@ -40,7 +40,7 @@ RUN     \
 &&      apt-get install -y --no-install-recommends --allow-downgrades make libc-dev libc6-dev gcc g++ cpp git dpkg-dev autoconf jq wget \
 &&      apt-get install -y --no-install-recommends --allow-downgrades libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
 &&      apt-get install -y --no-install-recommends --allow-downgrades zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
-&&      chmod -R 1777 /usr/local/bin \
+&&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
 &&      docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ --with-webp=/usr/include/ \
 &&      docker-php-ext-install gd \
@@ -81,7 +81,7 @@ RUN     \
 &&      cp /tmp/extensions/grpc/libs/opt/libgrpc*.so* /usr/local/lib/ \
 &&      (strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true) \
 &&      ldconfig \
-&&      chmod -R 1777 /usr/local/bin \
+&&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' > /var/tmp/ldd.out 2>/dev/null \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
 # adapted from docker-library/php Dockerfile-linux.template (MIT, /usr/share/doc/docker-library-php/LICENSE)
@@ -197,7 +197,9 @@ RUN     \
 &&      grep -q 'EditLine wrapper' <<<"$r" \
 &&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
 &&      out="$(ldd /usr/local/bin/php)" \
-&&      if grep -i readline <<<"$out"; then exit 1; fi
+&&      if grep -i readline <<<"$out"; then exit 1; fi \
+&&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
+&&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 
 USER    valksor
 

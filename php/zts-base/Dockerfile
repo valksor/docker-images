@@ -44,7 +44,7 @@ RUN     \
         libbrotli-dev libpsl-dev libgsasl-dev librtmp-dev libnghttp2-dev libnghttp3-dev libonig-dev libpq-dev libsodium-dev libargon2-dev libtidy-dev \
         libzip-dev libgmp-dev zlib1g-dev libffi-dev libssh2-1-dev libldap-dev libxslt1-dev libicu-dev libexif-dev libheif-dev liblzma-dev libwebp-dev \
         libedit-dev libncurses-dev \
-&&      chmod -R 1777 /usr/local/bin \
+&&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
 &&      mkdir --parents /var/www/html \
 &&      chown valksor:valksor /var/www/html \
@@ -112,7 +112,7 @@ RUN     \
 &&      docker-php-ext-enable sodium \
 &&      (php -i | grep -i 'max execution timers' || true) \
 &&      mkdir --parents "$PHP_INI_DIR/conf.d" \
-&&      chmod -R 1777 /usr/local/bin \
+&&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
 &&      ldconfig \
 &&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
@@ -252,7 +252,9 @@ RUN     \
 &&      grep -q 'EditLine wrapper' <<<"$r" \
 &&      php -r 'exit(function_exists("readline") ? 0 : 1);' \
 &&      out="$(ldd /usr/local/bin/php)" \
-&&      if grep -i readline <<<"$out"; then exit 1; fi
+&&      if grep -i readline <<<"$out"; then exit 1; fi \
+&&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
+&&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 
 USER    valksor
 

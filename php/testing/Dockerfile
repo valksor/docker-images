@@ -37,7 +37,7 @@ RUN     \
         set -eux \
 &&      chmod +x /tmp/build-extensions.sh \
 &&      /tmp/build-extensions.sh \
-&&      chmod -R 1777 /usr/local/bin \
+&&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev fontconfig \
 &&      rm -rf \
             ~/.pearrc \
@@ -152,6 +152,8 @@ EXPOSE  9000
 
 RUN     \
         set -eux \
-&&      git config --global --add safe.directory "*"
+&&      git config --global --add safe.directory "*" \
+&&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
+&&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
 
 CMD     ["php-fpm"]
