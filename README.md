@@ -124,14 +124,15 @@ docker exec php-app php -v
 docker exec php-app php -m
 ```
 
-Note: the `sodium` extension is loaded by default. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, install build tools first (`apt-get install -y build-essential autoconf`), then run `phpize && ./configure && make install` from the extension source — or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions.
+Note: the `sodium` extension is loaded by default; derived images that enable `sodium` themselves should drop that line to avoid a "Module already loaded" warning. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, switch to `USER root` and run `apt-get update && apt-get install -y build-essential autoconf` first (package lists are removed in the images), then run `phpize && ./configure && make install` from the extension source, or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions.
 
 PHP image notes:
 
 - `php -a` and the `readline` functions use libedit, like the official PHP images. Configure line editing in `~/.editrc` (not `~/.inputrc`); some `readline_*` functions behave differently under libedit, see the [readline documentation](https://www.php.net/manual/en/book.readline.php).
-- `/usr/local/bin` is root-only. Install your own tools as root in a derived image, or into a directory you own and add to `PATH`.
+- `/usr/local/bin` is writable only by root (tools remain executable by everyone). Install your own tools as root in a derived image, or into a directory you own and add to `PATH`.
 - `php-fpm-healthcheck` (FPM images):
   - It is preconfigured for `/fpm/status`. If you change `pm.status_path`, set `FCGI_STATUS_PATH` to match.
+  - The socket variants work the same; they preset `FCGI_CONNECT`.
   - The script only checks that FPM answers. It does not notice a wrong path, because FPM answers "Access denied." and that still counts as healthy.
   - To confirm the path, run `docker exec <container> php-fpm-healthcheck -v` and look for a `pool:` line in the output.
   - Metric options (for example `--listen-queue=10`) enforce thresholds only when the status page is reachable.
