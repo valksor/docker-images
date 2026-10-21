@@ -24,6 +24,9 @@ COPY    php/docker/docker-php-ext-configure     /usr/local/bin/docker-php-ext-co
 COPY    php/docker/docker-php-ext-enable        /usr/local/bin/docker-php-ext-enable
 COPY    php/docker/docker-php-ext-install       /usr/local/bin/docker-php-ext-install
 COPY    php/docker/docker-php-source            /usr/local/bin/docker-php-source
+# php-fpm-healthcheck, vendored from https://github.com/renatomefi/php-fpm-healthcheck
+# at commit a2d45de918787f761754b96b94a59f4f6acebc25 (sha256 53bc616c4a30f029b98bff48fdeb0c4da252cb11e4f86656a8222a67dc4e5009)
+COPY    php/healthcheck/php-fpm-healthcheck /usr/local/bin/php-fpm-healthcheck
 
 STOPSIGNAL SIGQUIT
 
@@ -114,9 +117,6 @@ RUN     \
 &&      chmod -R 1777 /usr/local/bin \
 &&      mkdir --parents --mode=777 --verbose /run/php-fpm \
 &&      touch /run/php-fpm/.keep_dir \
-&&      wget -O /usr/local/bin/php-fpm-healthcheck https://raw.githubusercontent.com/renatomefi/php-fpm-healthcheck/master/php-fpm-healthcheck \
-&&      chmod +x /usr/local/bin/php-fpm-healthcheck \
-&&      chown www-data:www-data /usr/local/bin/php-fpm-healthcheck \
 &&      { find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' 2>/dev/null; ldd /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget; } > /var/tmp/ldd.out \
 &&      if grep -i libreadline /var/tmp/ldd.out; then exit 1; fi \
 &&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
@@ -254,6 +254,7 @@ COPY    php/ini/fpm/fastcgi.ini /usr/local/etc/php/conf.d/zzz-fastcgi.ini
 COPY    php/ini/opcache.ini /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 COPY    php/preload.php /var/www/preload.php
 COPY    php/docker/LICENSE /usr/share/doc/docker-library-php/LICENSE
+COPY    php/healthcheck/LICENSE /usr/share/doc/php-fpm-healthcheck/LICENSE
 
 RUN     \
         set -eux \
