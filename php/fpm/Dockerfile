@@ -89,6 +89,8 @@ RUN     \
             done \
         ; done \
 &&      shopt -u nocaseglob \
+&&      third_party_licenses="$(find /usr/local/share/doc/php-ext/grpc/third_party -type f)" \
+&&      { [[ -n "${third_party_licenses}" ]] || { echo 'grpc: no third_party license files were found' >&2; exit 1; }; } \
 &&      strip --strip-unneeded /usr/local/lib/libgrpc*.so* \
 &&      ldconfig \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
