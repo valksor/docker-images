@@ -91,7 +91,6 @@ RUN     \
             --with-openssl \
             --with-password-argon2 \
             --with-pear \
-            --enable-pic \
             --with-pdo-pgsql \
             --with-pdo-sqlite=/usr \
             --with-sodium=shared \
