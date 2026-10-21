@@ -82,6 +82,15 @@ RUN     \
 &&      (strip --strip-unneeded /usr/local/lib/libgrpc*.so* || true) \
 &&      ldconfig \
 &&      chmod -R 1777 /usr/local/bin \
+&&      find /usr/local -type f \( -executable -o -name '*.so*' \) -exec ldd '{}' ';' > /var/tmp/ldd.out 2>/dev/null \
+&&      if grep 'not found' /var/tmp/ldd.out; then echo 'ldd: unresolved libraries' >&2; exit 1; fi \
+# adapted from docker-library/php Dockerfile-linux.template (MIT)
+&&      awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' /var/tmp/ldd.out \
+        | sort -u | xargs -r dpkg-query --search \
+        | awk 'sub(":$", "", $1) { print $1 }' | sort -u > /var/tmp/runtime-deps \
+&&      { test -s /var/tmp/runtime-deps || { echo 'runtime-deps empty: ldd scan found no dpkg-owned libraries' >&2; exit 1; }; } \
+&&      cat /var/tmp/runtime-deps \
+&&      rm /var/tmp/ldd.out \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
 &&      rm -rf \
@@ -144,17 +153,14 @@ COPY --from=builder /usr/local/sbin/ /usr/local/sbin/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /run/php-fpm/ /run/php-fpm/
 COPY --from=builder /var/lib/php/ /var/lib/php/
+COPY --from=builder /var/tmp/runtime-deps /var/tmp/
 
 RUN     \
         set -eux \
 &&      apt-get update \
 # dist-upgrade, not upgrade: sid transitions can need package adds/removals to move perl-base; plain upgrade holds it back and perl postinsts break on the skew
 &&      apt-get dist-upgrade -y --no-install-recommends \
-&&      apt-get install -y --no-install-recommends --allow-downgrades \
-            libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
-            libevent-2.1-7t64 libevent-core-2.1-7t64 libevent-extra-2.1-7t64 libevent-openssl-2.1-7t64 libevent-pthreads-2.1-7t64 \
-            liblz4-1 liblzf1 libhiredis1.1.0 \
-            libmagickcore-7.q16-10 libmagickwand-7.q16-10 \
+&&      xargs -a /var/tmp/runtime-deps apt-get install -y --no-install-recommends --allow-downgrades \
 &&      apt-get autoremove -y --purge \
 &&      rm -rf /var/cache/apt/* /var/lib/apt/lists/* /var/log/* /tmp/* /var/tmp/* \
 &&      ldconfig \
@@ -180,7 +186,13 @@ RUN     \
             /usr/lib/python3.*/__pycache__ \
             /usr/lib/python3.*/__phello__ \
             /usr/lib/python3.*/__hello__.py \
-            ~/.pearrc
+            ~/.pearrc \
+&&      out="$(php -m 2>&1)" \
+&&      if grep -qE 'PHP Startup|Unable to load|Fatal' <<<"$out"; then echo "$out" >&2; exit 1; fi \
+&&      out="$(ldd /usr/local/bin/php /usr/local/sbin/php-fpm "$(php-config --extension-dir)"/*.so)" \
+&&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
+&&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
+&&      php-fpm -v
 
 USER    valksor
 
