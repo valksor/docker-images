@@ -130,7 +130,6 @@ RUN     \
             /usr/local/bin/install-php-extensions \
             /usr/share/man/* \
             /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
-            /usr/local/etc/php/php.ini \
             /usr/lib/python3.*/__pycache__ \
             /usr/lib/python3.*/__phello__ \
             /usr/lib/python3.*/__hello__.py
@@ -154,6 +153,8 @@ RUN     \
         set -eux \
 &&      git config --global --add safe.directory "*" \
 &&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
-&&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi
+&&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi \
+# php.ini (development) comes from the builder stage; fail if the final stage lost it again
+&&      php -r 'exit(php_ini_loaded_file() === "/usr/local/etc/php/php.ini" && ini_get("log_errors") === "1" ? 0 : 1);'
 
 CMD     ["php", "-a"]
