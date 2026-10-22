@@ -155,6 +155,6 @@ RUN     \
 &&      w="$(find /usr/local/bin -perm /022 ! -type l)" \
 &&      if [ -n "$w" ]; then echo "writable: $w" >&2; exit 1; fi \
 # php.ini (development) comes from the builder stage; fail if the final stage lost it again
-&&      php -r 'exit(php_ini_loaded_file() === "/usr/local/etc/php/php.ini" && ini_get("log_errors") === "1" ? 0 : 1);'
+&&      php -r '$f = php_ini_loaded_file(); $l = ini_get("log_errors"); $a = ini_get("zend.assertions"); if ($f !== "/usr/local/etc/php/php.ini" || $l !== "1" || $a !== "1") { fwrite(STDERR, "php.ini check failed: loaded=" . var_export($f, true) . " log_errors=" . var_export($l, true) . " zend.assertions=" . var_export($a, true) . "\n"); exit(1); }'
 
 CMD     ["php-fpm"]
