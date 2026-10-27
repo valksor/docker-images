@@ -31,13 +31,14 @@ export POSTGRES_INITDB_ARGS="${POSTGRES_INITDB_ARGS:-} --set shared_preload_libr
 # launcher + one scheduler per database that enables timescaledb, pg_cron launcher,
 # pg_partman_bgw, pg_squeeze, logical replication launcher, plus parallel query
 # budget. The default 8 starves once ~3+ databases use timescaledb. pgaudit.log
-# defaults to none, so pgaudit would log nothing; ddl,role audits schema and
-# privilege changes without the volume of read/write logging. Consumers can
+# defaults to none, so pgaudit would log nothing; role audits privilege and role
+# changes. ddl is left out: migrations, test databases and the extension sync
+# below flood the shared log stream with it. Consumers can
 # override any flag via compose `command:` — later -c flags win in postgres arg
 # processing, so "$@" below supersedes these defaults.
 docker-entrypoint.sh postgres \
 	-c shared_preload_libraries='timescaledb,pg_cron,pg_partman_bgw,pgaudit,age,pg_squeeze,pg_stat_statements' \
-	-c pgaudit.log='ddl,role' \
+	-c pgaudit.log='role' \
 	-c cron.database_name="${POSTGRES_DB:-postgres}" \
 	-c max_worker_processes=32 \
 	-c timescaledb.max_background_workers=16 \
