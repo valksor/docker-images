@@ -90,14 +90,40 @@ fi
 # session (which happens during psql's default startup queries, even without a
 # .psqlrc). See the HINT in "extension cannot be updated after the old version
 # has already been loaded": 'Make sure to pass the "-X" flag to psql.'
+#
+# Extensions without an update path are dropped and recreated instead, but
+# only when they are listed in STATELESS_EXTENSIONS.
+# Only extensions that keep no data in member objects can be on the list;
+# DROP EXTENSION removes member tables (for example pg_cron's cron.job), so
+# stateful extensions must never be added.
+STATELESS_EXTENSIONS="plpgsql_check"
+
 echo "Syncing installed extensions to image binary versions..."
 for db in $(psql -X -U "$POSTGRES_USER" -d postgres -tAc \
 	"select datname from pg_database where datallowconn and datname <> 'template0' order by datname"); do
 	for ext in $(psql -X -U "$POSTGRES_USER" -d "$db" -tAc \
 		"select extname from pg_extension where extname <> 'plpgsql' order by extname"); do
-		psql -X -U "$POSTGRES_USER" -d "$db" -v ON_ERROR_STOP=0 \
-			-c "ALTER EXTENSION \"$ext\" UPDATE;" \
-			|| echo "WARNING: update of extension '$ext' in database '$db' failed"
+		if psql -X -U "$POSTGRES_USER" -d "$db" -v ON_ERROR_STOP=0 \
+			-c "ALTER EXTENSION \"$ext\" UPDATE;"; then
+			continue
+		fi
+		case " $STATELESS_EXTENSIONS " in
+		*" $ext "*)
+			# No update path (e.g. plpgsql_check 2.8 -> 2.10). Recreate inside a
+			# single transaction: without CASCADE the DROP fails if anything
+			# outside the extension depends on its members, and the transaction
+			# rolls back.
+			schema=$(psql -X -U "$POSTGRES_USER" -d "$db" -tAc \
+				"select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = '$ext'")
+			psql -X -U "$POSTGRES_USER" -d "$db" -v ON_ERROR_STOP=1 -1 \
+				-c "DROP EXTENSION \"$ext\";" \
+				-c "CREATE EXTENSION \"$ext\" SCHEMA \"$schema\";" \
+				|| echo "WARNING: recreate of extension '$ext' in database '$db' failed"
+			;;
+		*)
+			echo "WARNING: update of extension '$ext' in database '$db' failed"
+			;;
+		esac
 	done
 done
 
