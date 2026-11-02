@@ -114,7 +114,10 @@ for db in $(psql -X -U "$POSTGRES_USER" -d postgres -tAc \
 			# outside the extension depends on its members, and the transaction
 			# rolls back.
 			schema=$(psql -X -U "$POSTGRES_USER" -d "$db" -tAc \
-				"select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = '$ext'")
+				"select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = '$ext'") || {
+				echo "WARNING: recreate of extension '$ext' in database '$db' failed"
+				continue
+			}
 			psql -X -U "$POSTGRES_USER" -d "$db" -v ON_ERROR_STOP=1 -1 \
 				-c "DROP EXTENSION \"$ext\";" \
 				-c "CREATE EXTENSION \"$ext\" SCHEMA \"$schema\";" \
