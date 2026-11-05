@@ -30,13 +30,14 @@ runs:
                 set -euo pipefail
                 mkdir -p php
                 cd php
-                CLONE_CMD="git clone --single-branch"
+                CLONE_CMD="git clone --single-branch --depth=1"
                 if [ -n "${{ inputs.php_branch }}" ]; then
                     CLONE_CMD="$CLONE_CMD --branch ${{ inputs.php_branch }}"
                 fi
                 CLONE_CMD="$CLONE_CMD https://github.com/fork-php/php-src.git source"
                 eval $CLONE_CMD
-                cd source && git submodule update --init --force
+                # shallow; if a pinned submodule SHA ever fails to fetch, drop --depth=1 here only (keep clones shallow)
+                cd source && git submodule update --init --force --depth=1
                 docker pull ghcr.io/valksor/curl:latest
 
         -   uses: ./.github/actions/build-simple

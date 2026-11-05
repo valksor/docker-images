@@ -32,17 +32,19 @@ STOPSIGNAL SIGQUIT
 
 WORKDIR /tmp
 
-RUN     \
+RUN     --mount=type=cache,id=ccache,target=/root/.ccache \
         set -eux \
 &&      composer self-update --snapshot \
 &&      mkdir --parents /tmp/extensions \
 &&      apt-get update \
 &&      apt-get upgrade -y \
-&&      apt-get install -y --no-install-recommends --allow-downgrades make libc-dev libc6-dev gcc g++ cpp git dpkg-dev autoconf jq wget \
+&&      apt-get install -y --no-install-recommends --allow-downgrades make libc-dev libc6-dev gcc g++ cpp ccache git dpkg-dev autoconf jq wget \
 &&      apt-get install -y --no-install-recommends --allow-downgrades libpng16-16t64 libjpeg62-turbo libbrotli1 libwebp7 libfreetype6 \
 &&      apt-get install -y --no-install-recommends --allow-downgrades zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      export CFLAGS="$PHP_CFLAGS" CPPFLAGS="$PHP_CPPFLAGS" LDFLAGS="$PHP_LDFLAGS" \
+&&      export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content \
+&&      ccache -M 20G \
 &&      docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ --with-webp=/usr/include/ \
 &&      docker-php-ext-install gd \
 &&      docker-php-ext-enable gd
@@ -68,10 +70,15 @@ COPY    php/simdutf-php-ext/ /tmp/extensions/simdutf-php-ext/
 COPY    php/grpc/ /tmp/extensions/grpc/
 COPY    php/protobuf/ /tmp/extensions/protobuf/
 
-RUN     \
+RUN     --mount=type=cache,id=ccache,target=/root/.ccache \
         set -eux \
+&&      export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content \
+&&      ccache -M 20G \
 &&      cd /tmp/extensions/grpc \
 &&      EXTRA_DEFINES=GRPC_POSIX_FORK_ALLOW_PTHREAD_ATFORK make -j$(nproc) shared_c CONFIG=opt \
+&&      gcc --version | head -1 \
+# zero-hits decision tree: gcc version drift → builder present (docker buildx ls) → prune/mount eviction
+&&      ccache -s \
 &&      cd - \
 &&      mkdir -p /tmp/extensions/protobuf/php/ext/google/protobuf/third_party \
 &&      ln -sf /tmp/extensions/protobuf/third_party/utf8_range /tmp/extensions/protobuf/php/ext/google/protobuf/third_party/utf8_range \
@@ -97,7 +104,7 @@ RUN     \
 &&      ldconfig \
 &&      chmod 0755 /usr/local/bin && find /usr/local/bin -mindepth 1 -maxdepth 1 -type f -exec chmod 0755 '{}' + \
 &&      bash /tmp/runtime-deps.sh \
-&&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ autoconf dpkg-dev \
+&&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false make libc-dev libc6-dev cpp gcc g++ ccache autoconf dpkg-dev \
 &&      apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false zlib1g-dev libbrotli-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libfreetype-dev libldap-dev \
 &&      rm -rf \
             ~/.pearrc \
@@ -120,6 +127,8 @@ RUN     \
             /usr/lib/python3.*/__phello__ \
             /usr/lib/python3.*/__hello__.py \
             ~/.pearrc \
+&&      unset CCACHE_COMPILERCHECK \
+&&      export PATH="${PATH#/usr/lib/ccache:}" \
 &&      env | sed 's/=\(.*\)/="\1"/' | sed 's/^/export /' > /tmp/build_environment
 
 FROM    ghcr.io/valksor/php/zts-base${BASE_TAG}
@@ -195,11 +204,16 @@ COPY    php/ini/zz.ini /usr/local/etc/php/conf.d/zz.ini
 
 RUN     \
         set -eux \
+&&      if env | grep -q '^CCACHE'; then echo 'ccache env leaked into image' >&2; exit 1; fi \
+&&      [ "${PATH#/usr/lib/ccache:}" = "$PATH" ] || { echo 'ccache PATH prefix leaked into image' >&2; exit 1; } \
 &&      out="$(php -d display_errors=stderr -d display_startup_errors=1 -d log_errors=0 -m 2>&1)" \
 &&      if grep -qE 'PHP Startup|Unable to load|Fatal|already loaded' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
+&&      php -r 'exit(defined("Redis::SERIALIZER_IGBINARY") ? 0 : 1);' \
+&&      out_apcu="$(php -d display_startup_errors=1 -r 'apcu_store("t", 1);' 2>&1)" \
+&&      if grep -qiE 'serializer.*(not available|fallback)|available serializers' <<<"$out_apcu"; then echo "apcu serializer fallback detected: $out_apcu" >&2; exit 1; fi \
 &&      r="$(php --ri readline)" \
 &&      if ! grep -q 'EditLine wrapper' <<<"$r"; then echo 'readline is not built against libedit' >&2; exit 1; fi \
 &&      if ! php -r 'exit(function_exists("readline") ? 0 : 1);'; then echo 'readline() is missing' >&2; exit 1; fi \

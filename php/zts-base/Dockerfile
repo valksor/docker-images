@@ -30,13 +30,14 @@ STOPSIGNAL SIGQUIT
 
 WORKDIR /home/valksor
 
-RUN     \
+# runner hardware change ⇒ docker buildx rm valksor-builder on the runner (ccache keys hash the literal -march=native flag, not the resolved ISA)
+RUN     --mount=type=cache,id=ccache,target=/root/.ccache \
         set -eux \
 ;       jobs="$(( $(nproc) - 1 ))" \
 ;       [ "$jobs" -lt 1 ] && jobs=1 \
 ;       apt-get update \
 &&      apt-get upgrade -y \
-&&      apt-get install -y --no-install-recommends --allow-downgrades make libc-dev libc6-dev gcc g++ cpp git dpkg-dev autoconf jq wget \
+&&      apt-get install -y --no-install-recommends --allow-downgrades make libc-dev libc6-dev gcc g++ cpp ccache git dpkg-dev autoconf jq wget \
 &&      apt-get install -y --no-install-recommends --allow-downgrades bison re2c valgrind libxml2 libssl3t64 libsqlite3-0 libbz2-1.0 libidn2-0 gdb-minimal \
         zstd libbrotli1 libpsl5t64 libgsasl18 rtmpdump librtmp1 libnghttp3-9 nghttp2 libonig5 libpq5 libsodium26 libargon2-1 libtidy58 libfcgi-bin \
         libzip5 libgmp10 zlib1g libffi8 libssh2-1t64 libldap-common libldap2 libxslt1.1 libicu78 libvips42 libexif12 libheif1 \
@@ -54,6 +55,9 @@ RUN     \
             CFLAGS="$PHP_CFLAGS" \
             CPPFLAGS="$PHP_CPPFLAGS" \
             LDFLAGS="$PHP_LDFLAGS" \
+&&      export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content \
+&&      ccache -M 20G \
+&&      gcc --version | head -1 \
 &&      cd /usr/src/php \
 &&      gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
 &&      ./buildconf --force \
@@ -102,6 +106,8 @@ RUN     \
 &&      make -j"$jobs" \
 &&      find -type f -name '*.a' -delete \
 &&      make install \
+# zero-hits decision tree: gcc version drift → builder present (docker buildx ls) → prune/mount eviction
+&&      ccache -s \
 &&      strip --strip-all /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so \
 &&      for f in /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so; do s="$(readelf -S "$f")" || exit 1; if grep -q '\.symtab' <<<"$s"; then echo "strip left .symtab in $f" >&2; exit 1; fi; done \
 &&      make clean \
@@ -146,6 +152,8 @@ RUN     \
             /usr/lib/python3.*/__hello__.py \
             ~/.pearrc \
 &&      mv /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini \
+&&      unset CCACHE_COMPILERCHECK \
+&&      export PATH="${PATH#/usr/lib/ccache:}" \
 &&      env | sed 's/=\(.*\)/="\1"/' | sed 's/^/export /' > /tmp/build_environment
 
 FROM    ghcr.io/valksor/curl:latest
@@ -232,6 +240,8 @@ COPY    php/docker/LICENSE /usr/share/doc/docker-library-php/LICENSE
 
 RUN     \
         set -eux \
+&&      if env | grep -q '^CCACHE'; then echo 'ccache env leaked into image' >&2; exit 1; fi \
+&&      [ "${PATH#/usr/lib/ccache:}" = "$PATH" ] || { echo 'ccache PATH prefix leaked into image' >&2; exit 1; } \
 &&      chmod 644 /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
 &&      git config --global --add safe.directory "*" \
 &&      chown -R valksor:valksor /home/valksor \
