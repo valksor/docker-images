@@ -7,9 +7,10 @@ export CFLAGS="$PHP_CFLAGS"
 export CPPFLAGS="$PHP_CPPFLAGS"
 export LDFLAGS="$PHP_LDFLAGS"
 # ccache is installed only by the zts/zts-base builders; other consumers (zts-testing)
-# build without it — degrade gracefully instead of failing on the missing binary.
+# build without it. Probe functionally, not just by name: an orphaned ccache binary
+# copied without its shared libraries would pass command -v and then fail at runtime.
 CCACHE_AVAILABLE=""
-if command -v ccache >/dev/null 2>&1; then
+if command -v ccache >/dev/null 2>&1 && ccache --version >/dev/null 2>&1; then
     export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content
     ccache -M 20G
     CCACHE_AVAILABLE=1

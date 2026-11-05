@@ -124,6 +124,9 @@ RUN     --mount=type=cache,id=ccache,target=/root/.ccache \
 &&      echo "/usr/local/lib" > /etc/ld.so.conf.d/local-lib.conf \
 &&      ldconfig \
 &&      bash /tmp/runtime-deps.sh /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget \
+# ccache is build-only here: the final stage copies /usr/bin as raw files without their
+# /usr/lib libraries, and the orphaned binary breaks downstream `command -v ccache` probes
+&&      apt-get purge -y ccache \
 &&      mkdir --parents /var/lib/php/sessions \
 &&      chown -R valksor:valksor /var/lib/php/sessions \
 &&      mkdir --parents /var/lib/php/opcache \
