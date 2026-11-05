@@ -46,46 +46,11 @@ RUN     \
 # Copy FrankenPHP source (cloned in GitHub Action)
 WORKDIR /go/src/app
 COPY    php/frankenphp/    /go/src/app/
-COPY    php/patches/frankenphp-php86-output-handler.patch    /tmp/
-COPY    php/patches/frankenphp-c11-atomics.patch    /tmp/
-COPY    php/patches/frankenphp-sapi-designated-init.patch    /tmp/
-
-# php-src master turned PG(output_handler) into a zend_string*, which upstream FrankenPHP
-# does not handle yet, so php/patches/frankenphp-php86-output-handler.patch adapts it. The
-# patch itself carries the PHP_VERSION_ID split, so one patched tree serves 8.5 and 8.6 alike.
-# The branches below sniff which of the three states the cloned source is in, so the patch
-# drops out of the build by itself once upstream adopts the new API.
-# php-src master also removed Zend/zend_atomic.h (37d0ef5a6), which upstream FrankenPHP
-# still uses, so php/patches/frankenphp-c11-atomics.patch maps it to C11 atomics; it drops
-# out of the build the same way once upstream moves.
-# php-src master also removed the terminate_process SAPI member, which shifts upstream's
-# positional sapi initializer; the sapi-designated-init patch switches it to designated initializers.
+# Upstream FrankenPHP now carries its own PHP_VERSION_ID gates for php-src master
+# (C11 atomics and the sapi initializer at >= 80700, the output_handler API), so no local
+# patches are needed against the 8.7.0-dev master this image builds from.
 RUN     \
         set -eux \
-&&      if grep -qF 'zend_string_dup(PG(output_handler)' frankenphp.c; then \
-            echo 'frankenphp.c already speaks the 8.6 output_handler API; skipping patch'; \
-        elif grep -qF 'ZVAL_STRING(&oh, PG(output_handler))' frankenphp.c; then \
-            git apply -p1 /tmp/frankenphp-php86-output-handler.patch; \
-        else \
-            echo 'frankenphp.c output_handler code moved: refresh php/patches/frankenphp-php86-output-handler.patch and the greps above' >&2; \
-            exit 1; \
-        fi \
-&&      if ! grep -qF 'zend_atomic' frankenphp.h frankenphp.c; then \
-            echo 'frankenphp already uses C11 atomics; skipping zend_atomic patch'; \
-        elif grep -qF 'zend_atomic_bool *vm_interrupt;' frankenphp.h; then \
-            git apply -p1 /tmp/frankenphp-c11-atomics.patch; \
-        else \
-            echo 'frankenphp zend_atomic code moved: refresh php/patches/frankenphp-c11-atomics.patch and the greps above' >&2; \
-            exit 1; \
-        fi \
-&&      if grep -qF 'NULL,                          /* Child terminate */' frankenphp.c; then \
-            git apply -p1 /tmp/frankenphp-sapi-designated-init.patch; \
-        elif grep -qF '.register_server_variables' frankenphp.c; then \
-            echo 'frankenphp_sapi_module already uses designated initializers; skipping patch'; \
-        else \
-            echo 'frankenphp_sapi_module initializer moved: refresh php/patches/frankenphp-sapi-designated-init.patch and the greps above' >&2; \
-            exit 1; \
-        fi \
 &&      go mod download
 
 # Set up CGO environment for linking against PHP
