@@ -6,8 +6,14 @@ set -eux
 export CFLAGS="$PHP_CFLAGS"
 export CPPFLAGS="$PHP_CPPFLAGS"
 export LDFLAGS="$PHP_LDFLAGS"
-export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content
-ccache -M 20G
+# ccache is installed only by the zts/zts-base builders; other consumers (zts-testing)
+# build without it — degrade gracefully instead of failing on the missing binary.
+CCACHE_AVAILABLE=""
+if command -v ccache >/dev/null 2>&1; then
+    export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content
+    ccache -M 20G
+    CCACHE_AVAILABLE=1
+fi
 
 if [[ ! -f /tmp/extensions.json ]]; then
    echo "Error: extensions.json not found. Terminating script."
@@ -157,8 +163,15 @@ build_extension() {
 
 # Pass 0 — dependency barrier: redis needs igbinary+msgpack headers (--enable-redis-igbinary/msgpack), apcu autodetects the igbinary serializer at configure time; extensions.json key order is no longer load-bearing
 for extension in igbinary msgpack; do
+    if [[ -z "${EXT_SOURCE[${extension}]:-}" ]]; then
+        echo "pass 0: ${extension} is not enabled, skipping barrier build"
+        continue
+    fi
     EXT_PASS0["${extension}"]=1
-    ( build_extension "${extension}" && echo OK > "/tmp/ext-status/${extension}" || echo FAILED > "/tmp/ext-status/${extension}" ) > "/tmp/ext-logs/${extension}.log" 2>&1 &
+    # no &&/|| around build_extension: a conditional context suspends errexit inside the
+    # function, so a failed build would run to the always-succeeding rm -rf and record OK.
+    # The subshell inherits set -eux and dies on the failure; a missing status file is FAILED in Pass 3.
+    ( build_extension "${extension}"; echo OK > "/tmp/ext-status/${extension}" ) > "/tmp/ext-logs/${extension}.log" 2>&1 &
 done
 wait
 
@@ -171,10 +184,11 @@ for extension in "${!EXT_SOURCE[@]}"; do
         continue
     fi
     echo "lane dispatch: ${extension}"
-    ( build_extension "${extension}" && echo OK > "/tmp/ext-status/${extension}" || echo FAILED > "/tmp/ext-status/${extension}" ) > "/tmp/ext-logs/${extension}.log" 2>&1 &
+    ( build_extension "${extension}"; echo OK > "/tmp/ext-status/${extension}" ) > "/tmp/ext-logs/${extension}.log" 2>&1 &
     running="$(( running + 1 ))"
     if [[ "${running}" -ge "${LANES}" ]]; then
         wait -n || :
+        echo "lane finished"
         running="$(( running - 1 ))"
     fi
 done
@@ -193,10 +207,17 @@ for extension in "${enabled_extensions[@]}"; do
     fi
 done
 
+# license assertion runs only for extensions that built OK: a failed build has no license
+# dir by construction; a license failure joins the banner instead of exiting here, so it
+# cannot mask the FAILED EXTENSIONS summary when both failure kinds coexist
 for extension in "${enabled_extensions[@]}"; do
+    status="$(cat "/tmp/ext-status/${extension}" 2>/dev/null || true)"
+    if [[ "${status}" != "OK" ]]; then
+        continue
+    fi
     if [[ -z "$(find "/usr/local/share/doc/php-ext/${extension}" -type f -print -quit)" ]]; then
         echo "license directory for ${extension} is missing or empty" >&2
-        exit 1
+        failed_extensions+=("${extension}")
     fi
 done
 
@@ -207,7 +228,9 @@ fi
 # strip debug symbols from all built extensions
 find "$(php-config --extension-dir)" -name '*.so' -exec strip --strip-all '{}' +
 
-ccache -s
+if [[ -n "${CCACHE_AVAILABLE}" ]]; then
+    ccache -s
+fi
 
 if [[ ${#failed_extensions[@]} -gt 0 ]]; then
     echo ""

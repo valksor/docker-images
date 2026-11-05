@@ -211,7 +211,7 @@ RUN     \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so "$(php-config --extension-dir)"/*.so)" \
 &&      if grep 'not found' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      php -r 'foreach (["sodium", "gd", "imagick", "zip", "event", "redis"] as $e) if (!extension_loaded($e)) { fwrite(STDERR, "missing extension: $e\n"); exit(1); }' \
-&&      php -r 'exit(defined("Redis::SERIALIZER_IGBINARY") ? 0 : 1);' \
+&&      php -r 'if (!defined("Redis::SERIALIZER_IGBINARY")) { fwrite(STDERR, "redis igbinary serializer missing\n"); exit(1); }' \
 &&      out_apcu="$(php -d display_startup_errors=1 -r 'apcu_store("t", 1);' 2>&1)" \
 &&      if grep -qiE 'serializer.*(not available|fallback)|available serializers' <<<"$out_apcu"; then echo "apcu serializer fallback detected: $out_apcu" >&2; exit 1; fi \
 &&      r="$(php --ri readline)" \

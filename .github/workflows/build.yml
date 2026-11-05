@@ -16,7 +16,7 @@ on:
                 options: [ "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", ]
                 required: true
                 type: choice
-            # no_cache rebuilds layers only; the compiler cache on builder valksor-builder persists. From-scratch rebuild: docker buildx rm valksor-builder on the runner, then dispatch.
+            # no_cache rebuilds layers only; the compiler cache on builder valksor-builder persists (self-data only; amd64 legs get no ccache carry-over). From-scratch rebuild: docker buildx rm valksor-builder on the runner, then dispatch.
             no_cache:
                 default: "false"
                 description: "Build with --no-cache"
@@ -456,4 +456,4 @@ jobs:
                     rm -rf ./* || true
                     rm -rf ./.??* || true
                     ls -la ./
-                    docker buildx inspect valksor-builder >/dev/null 2>&1 && docker buildx prune --builder valksor-builder -f --keep-storage=30GB || echo 'valksor-builder absent — nothing to prune'
+                    if docker buildx inspect valksor-builder >/dev/null 2>&1; then docker buildx prune --builder valksor-builder -f --keep-storage=30GB; else echo 'valksor-builder absent — nothing to prune'; fi
