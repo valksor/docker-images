@@ -47,8 +47,10 @@ RUN     \
 WORKDIR /go/src/app
 COPY    php/frankenphp/    /go/src/app/
 # Upstream FrankenPHP now carries its own PHP_VERSION_ID gates for php-src master
-# (C11 atomics and the sapi initializer at >= 80700, the output_handler API), so no local
-# patches are needed against the 8.7.0-dev master this image builds from.
+# (at >= 80700: C11 atomics, the sapi initializer, and the output_handler API), so no
+# local patches are needed against the php-src master this image builds from. If that
+# changes, the build fails at the CGO compile; the retired grep-guarded patch pattern
+# is recoverable via git log -- php/patches/
 RUN     \
         set -eux \
 &&      go mod download
