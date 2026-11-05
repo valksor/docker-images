@@ -1,4 +1,4 @@
-name: "Build PHP-FPM testing"
+name: "Build PHP testing"
 description: "Clone php-src, pcov, xdebug then build"
 inputs:
     dockerfile:
@@ -18,11 +18,11 @@ inputs:
     php_version:
         description: "PHP version for build"
         required: false
-        default: "8.5.0-dev"
+        default: "8.6.0-dev"
     base_image:
-        description: "Base image to pull (fpm or zts)"
+        description: "Base image to pull (zts)"
         required: false
-        default: "fpm"
+        default: "zts"
     extra_repos:
         description: "Extra repos to clone (format: 'name1=url1 name2=url2')"
         required: false
@@ -45,5 +45,5 @@ runs:
                 tags: ${{ inputs.tags }}
                 no_cache: ${{ inputs.no_cache }}
                 build-args: |
-                    BASE_TAG=${{ inputs.php_branch == 'master' && ':master' || ':latest' }}
+                    BASE_TAG=:master
                     PHP_VERSION=${{ inputs.php_version }}

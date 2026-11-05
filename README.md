@@ -5,16 +5,13 @@
 
 Production-ready, highly optimized Docker images for modern web applications. Built by SIA Valksor with focus on performance, security, and minimal size.
 
-Available images: **Base Images**, **PHP-FPM variants**, **PHP-ZTS variants**, **FrankenPHP**, **Nginx**, **PostgreSQL**, **cURL**, **Action utilities**, and more.
+Available images: **Base Images**, **PHP-ZTS variants**, **FrankenPHP**, **Nginx**, **PostgreSQL**, **cURL**, **Action utilities**, and more.
 
 ## Quick Start
 
 Pull and run any image in seconds:
 
 ```bash
-# PHP-FPM with extensions
-docker run -d --name php-fpm ghcr.io/valksor/php/fpm:latest
-
 # Nginx with brotli compression
 docker run -d --name nginx -p 80:80 ghcr.io/valksor/nginx:latest
 
@@ -28,7 +25,7 @@ docker run -d --name postgres \
 docker run --rm ghcr.io/valksor/curl:latest --version
 
 # FrankenPHP application server
-docker run -d --name frankenphp -p 80:80 ghcr.io/valksor/php/franken:latest
+docker run -d --name frankenphp -p 80:80 ghcr.io/valksor/php/franken:master
 ```
 
 ## Available Images
@@ -38,35 +35,18 @@ docker run -d --name frankenphp -p 80:80 ghcr.io/valksor/php/franken:latest
 |-------|--------------|----------|
 | **Debian** | Optimized base, no docs, custom user | Foundation for all images |
 
-### PHP-FPM Variants (8.5.0-dev)
-| Image | Key Features | Use Case |
-|-------|--------------|----------|
-| **php/fpm-base** | Core PHP 8.5.0-dev, minimal extensions | Base for PHP-FPM variants |
-| **php/fpm** | GD, ImageMagick, Redis, MongoDB, APCu, gRPC, Protobuf | Production PHP apps |
-| **php/fpm-testing** | PCov, Xdebug, Composer, dev tools | Development & testing |
-| **php/fpm-socket** | Unix socket (9000→/tmp/sockets/php-fpm.sock) | Local container comms |
-| **php/fpm-testing-socket** | Socket + testing tools | Development with sockets |
-
-### PHP-ZTS Variants (8.5.0-dev)
+### PHP-ZTS Variants (8.6.0-dev, `:master` tag)
 | Image | Key Features | Use Case |
 |-------|--------------|----------|
 | **php/zts-base** | Thread-safe PHP base, embed SAPI | Base for ZTS variants |
 | **php/zts** | ZTS with extensions (GD, Redis, gRPC, Protobuf) | Multi-threaded PHP apps |
 | **php/zts-testing** | ZTS + Xdebug, PCov, Composer | Thread-safe development |
 
-### FrankenPHP Variants (8.5.0-dev)
+### FrankenPHP Variants (8.6.0-dev, `:master` tag)
 | Image | Key Features | Use Case |
 |-------|--------------|----------|
 | **php/franken** | Go-based PHP server, HTTP/3, Mercure, Vulcain | Modern application server |
 | **php/franken-testing** | FrankenPHP + Xdebug, PCov | Development with FrankenPHP |
-
-### PHP Master Branch (8.6.0-dev)
-All PHP variants are available with the `:master` tag for testing PHP 8.6.0-dev:
-```bash
-ghcr.io/valksor/php/fpm:master
-ghcr.io/valksor/php/zts:master
-ghcr.io/valksor/php/franken:master
-```
 
 ### Web Services
 | Image | Key Features | Use Case |
@@ -80,7 +60,7 @@ ghcr.io/valksor/php/franken:master
 | **cURL** | HTTP/3, QUIC, wolfSSL support | Modern HTTP requests |
 | **action/split** | Git repo splitting, subtree operations | Monorepo management |
 
-**Total: 25 optimized images**
+**Total: 10 optimized images**
 
 ## Usage Examples
 
@@ -98,46 +78,13 @@ FROM ghcr.io/valksor/debian:latest
 
 ### PHP Variants
 
-Choose the right PHP variant for your needs:
-
-```bash
-# Production PHP with full extensions
-docker run -d \
-  --name php-app \
-  -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/fpm:latest
-
-# Development with testing tools
-docker run -d \
-  --name php-dev \
-  -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/fpm-testing:latest
-
-# PHP with Unix socket (for local container communication)
-docker run -d \
-  --name php-socket \
-  -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/fpm-socket:latest
-
-# Check PHP version and extensions
-docker exec php-app php -v
-docker exec php-app php -m
-```
-
 Note: the `sodium` extension is loaded by default; derived images that enable `sodium` themselves should drop that line (the image already ships `conf.d/docker-php-ext-sodium.ini`) to avoid a "Module already loaded" warning. `pecl`/`pear` are no longer shipped (PEAR/PECL are deprecated); to add an extension, switch to `USER root` and run `apt-get update && apt-get install -y build-essential autoconf` first (package lists are removed in the images), then either run `phpize && ./configure && make install` from the extension source or use [PIE](https://github.com/php/pie), the PHP Installer for Extensions, and in both cases switch back to `USER valksor`.
 
 PHP image notes:
 
 - `php -a` and the `readline` functions use libedit, like the official PHP images. Configure line editing in `~/.editrc` (not `~/.inputrc`); some `readline_*` functions behave differently under libedit, see the [readline documentation](https://www.php.net/manual/en/book.readline.php).
 - `/usr/local/bin` is writable only by root (tools remain executable by everyone). Install your own tools as root in a derived image, or into a directory you own and add to `PATH`.
-- `php-fpm-healthcheck` (FPM images):
-  - It is preconfigured for `/fpm/status`. If you change `pm.status_path`, set `FCGI_STATUS_PATH` to match.
-  - The socket variants work the same; they preset `FCGI_CONNECT`.
-  - The script only checks that FPM answers. It does not notice a wrong path, because FPM answers "Access denied." and that still counts as healthy.
-  - To confirm the path, run `docker exec <container> php-fpm-healthcheck -v` and look for a `pool:` line in the output.
-  - Metric options (for example `--listen-queue=10`) enforce thresholds only when the status page is reachable.
-  - Compose healthcheck: `test: ["CMD", "php-fpm-healthcheck"]`.
-- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.) and `php/healthcheck` (MIT, Renato Mefi). The image license label (`BSD-3-Clause AND MIT`) covers this repo's files, including those vendored MIT files, not the bundled PHP runtime or other software: the runtime is BSD-3-Clause on the master/8.6 branch and PHP-3.01 on 8.5 and older, and its license ships in the image at `/usr/local/share/doc/php/LICENSE`; extension licenses ship under `/usr/local/share/doc/php-ext/`. Other bundled software keeps its own license.
+- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.). The image license label (`BSD-3-Clause AND MIT`) covers this repo's files, including those vendored MIT files, not the bundled PHP runtime or other software: the runtime is BSD-3-Clause on the master/8.6 branch, and its license ships in the image at `/usr/local/share/doc/php/LICENSE`; extension licenses ship under `/usr/local/share/doc/php-ext/`. Other bundled software keeps its own license.
 
 ### PHP-ZTS Variants
 
@@ -148,16 +95,16 @@ Thread-safe PHP for parallel execution and embedded applications:
 docker run -d \
   --name php-zts-app \
   -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/zts:latest
+  ghcr.io/valksor/php/zts:master
 
 # ZTS with testing tools
 docker run -d \
   --name php-zts-dev \
   -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/zts-testing:latest
+  ghcr.io/valksor/php/zts-testing:master
 
 # Interactive mode (ZTS uses CLI by default)
-docker run -it --rm ghcr.io/valksor/php/zts:latest php -a
+docker run -it --rm ghcr.io/valksor/php/zts:master php -a
 ```
 
 ### FrankenPHP
@@ -171,7 +118,7 @@ docker run -d \
   -p 80:80 \
   -p 443:443 \
   -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/franken:latest
+  ghcr.io/valksor/php/franken:master
 
 # FrankenPHP with custom Caddyfile
 docker run -d \
@@ -179,35 +126,17 @@ docker run -d \
   -p 80:80 \
   -v /path/to/Caddyfile:/etc/caddy/Caddyfile \
   -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/franken:latest
+  ghcr.io/valksor/php/franken:master
 
 # Development with Xdebug
 docker run -d \
   --name frankenphp-dev \
   -p 80:80 \
   -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/franken-testing:latest
+  ghcr.io/valksor/php/franken-testing:master
 
 # Check FrankenPHP version
 docker exec frankenphp-app frankenphp version
-```
-
-### PHP Master Branch (8.6.0-dev)
-
-Test upcoming PHP features using the master branch builds:
-
-```bash
-# Test PHP 8.6.0-dev with FPM
-docker run --rm ghcr.io/valksor/php/fpm:master php -v
-
-# Test with FrankenPHP
-docker run --rm ghcr.io/valksor/php/franken:master php -v
-
-# Development with master branch
-docker run -d \
-  --name php-master-dev \
-  -v /path/to/app:/var/www/html \
-  ghcr.io/valksor/php/fpm-testing:master
 ```
 
 ### Nginx
@@ -386,9 +315,11 @@ Images are published as manifests covering:
 - **GitHub Container Registry**: `ghcr.io/valksor/*`
 
 ### Tagging Strategy
-- `latest` - Most recent stable version (PHP 8.5.0-dev)
+- `latest` - Most recent stable version
 - `master` - PHP 8.6.0-dev development branch
 - `18` - PostgreSQL major version
+
+The PHP-FPM images are removed (migrate to the ZTS or FrankenPHP images); the ZTS/FrankenPHP `:latest` tags are frozen — switch to their `:master` tags.
 
 ### Pull Examples
 
@@ -396,27 +327,12 @@ Images are published as manifests covering:
 # Base Images
 docker pull ghcr.io/valksor/debian:latest
 
-# PHP-FPM Variants
-docker pull ghcr.io/valksor/php/fpm-base:latest
-docker pull ghcr.io/valksor/php/fpm:latest
-docker pull ghcr.io/valksor/php/fpm-testing:latest
-docker pull ghcr.io/valksor/php/fpm-socket:latest
-docker pull ghcr.io/valksor/php/fpm-testing-socket:latest
-
-# PHP-ZTS Variants
-docker pull ghcr.io/valksor/php/zts-base:latest
-docker pull ghcr.io/valksor/php/zts:latest
-docker pull ghcr.io/valksor/php/zts-testing:latest
-
-# FrankenPHP Variants
-docker pull ghcr.io/valksor/php/franken:latest
-docker pull ghcr.io/valksor/php/franken-testing:latest
-
-# PHP Master Branch (8.6.0-dev)
-docker pull ghcr.io/valksor/php/fpm:master
-docker pull ghcr.io/valksor/php/fpm-testing:master
+# PHP Variants (8.6.0-dev, `:master` tag)
+docker pull ghcr.io/valksor/php/zts-base:master
 docker pull ghcr.io/valksor/php/zts:master
+docker pull ghcr.io/valksor/php/zts-testing:master
 docker pull ghcr.io/valksor/php/franken:master
+docker pull ghcr.io/valksor/php/franken-testing:master
 
 # Web Services
 docker pull ghcr.io/valksor/nginx:latest

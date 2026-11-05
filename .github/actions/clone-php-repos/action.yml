@@ -6,9 +6,9 @@ inputs:
         required: false
         default: ""
     base_image:
-        description: "Base image to pull (fpm-base or zts-base)"
+        description: "Base image to pull (zts-base, zts, or zts-testing)"
         required: false
-        default: "fpm-base"
+        default: "zts-base"
     include_testing:
         description: "Also clone testing repos (xdebug, pcov)"
         required: false
@@ -77,8 +77,5 @@ runs:
                 fi
 
                 # Pull the base image
-                BASE_TAG=":latest"
-                if [ "${{ inputs.php_branch }}" = "master" ]; then
-                    BASE_TAG=":master"
-                fi
+                BASE_TAG=":master"
                 docker pull ghcr.io/valksor/php/${{ inputs.base_image }}${BASE_TAG}

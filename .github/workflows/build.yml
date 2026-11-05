@@ -13,7 +13,7 @@ on:
             build_target:
                 default: "debian"
                 description: "Image name (debian, postgres, nginx). Context-aware based on mode."
-                options: [ "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", "php-fpm-base-master", "php-fpm-master", "php-fpm-testing-master", "php-fpm-socket-master", "php-zts-base", "php-zts", "php-zts-testing", "php-franken", "php-franken-testing", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket", ]
+                options: [ "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", ]
                 required: true
                 type: choice
             # no_cache rebuilds layers only; the compiler cache on builder valksor-builder persists. From-scratch rebuild: docker buildx rm valksor-builder on the runner, then dispatch.
@@ -32,7 +32,7 @@ on:
             stop_after:
                 default: "none"
                 description: "Stop building after this image (chain mode only)"
-                options: [ "none", "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", "php-fpm-base-master", "php-fpm-master", "php-fpm-testing-master", "php-fpm-socket-master", "php-zts-base", "php-zts", "php-zts-testing", "php-franken", "php-franken-testing", "php-fpm-base", "php-fpm", "php-fpm-testing", "php-fpm-socket", ]
+                options: [ "none", "debian", "action-split", "nginx", "postgres", "go", "curl", "php-zts-base-master", "php-zts-master", "php-zts-testing-master", "php-franken-master", "php-franken-testing-master", ]
                 required: false
                 type: choice
 
@@ -87,8 +87,8 @@ jobs:
                         exit 1
                     fi
 
-                    ORDER=(debian action-split nginx postgres go curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
-                    ARM_ONLY_TARGETS=(curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master php-fpm-base-master php-fpm-master php-fpm-testing-master php-fpm-socket-master php-zts-base php-zts php-zts-testing php-franken php-franken-testing php-fpm-base php-fpm php-fpm-testing php-fpm-socket)
+                    ORDER=(debian action-split nginx postgres go curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master)
+                    ARM_ONLY_TARGETS=(curl php-zts-base-master php-zts-master php-zts-testing-master php-franken-master php-franken-testing-master)
 
                     BUILD_TARGET_VALID=false
                     for target in "${ORDER[@]}"; do
@@ -433,138 +433,6 @@ jobs:
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
                     php_version: "8.6.0-dev"
-
-            -   name: build php-fpm-base-master
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-base-master ')
-                uses: ./.github/actions/build-php-base
-                with:
-                    dockerfile: php/base/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm-base:master
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    php_branch: master
-                    php_version: "8.6.0-dev"
-
-            -   name: build php-fpm-master
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-master ')
-                uses: ./.github/actions/build-php
-                with:
-                    dockerfile: php/fpm/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm:master
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    php_branch: master
-                    php_version: "8.6.0-dev"
-
-            -   name: build php-fpm-testing-master
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-testing-master ')
-                uses: ./.github/actions/build-php-testing
-                with:
-                    dockerfile: php/testing/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm-testing:master
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    php_branch: master
-                    php_version: "8.6.0-dev"
-
-            -   name: build php-fpm-socket-master
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-socket-master ')
-                uses: ./.github/actions/build-php-sockets
-                with:
-                    dockerfile1: php/socket/Dockerfile
-                    tags1: |
-                        ${{ env.PHP_OWNER }}/fpm-socket:master
-                    dockerfile2: php/testing-socket/Dockerfile
-                    tags2: |
-                        ${{ env.PHP_OWNER }}/fpm-testing-socket:master
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    base_tag: :master
-
-            -   name: build php-zts-base
-                if: contains(needs.plan.outputs.run_list, ' php-zts-base ')
-                uses: ./.github/actions/build-php-zts-base
-                with:
-                    dockerfile: php/zts-base/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/zts-base:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-zts
-                if: contains(needs.plan.outputs.run_list, ' php-zts ')
-                uses: ./.github/actions/build-php
-                with:
-                    dockerfile: php/zts/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/zts:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    base_image: "zts-base"
-
-            -   name: build php-zts-testing
-                if: contains(needs.plan.outputs.run_list, ' php-zts-testing ')
-                uses: ./.github/actions/build-php-testing
-                with:
-                    dockerfile: php/zts-testing/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/zts-testing:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-                    base_image: "zts"
-
-            -   name: build php-franken
-                if: contains(needs.plan.outputs.run_list, ' php-franken ')
-                uses: ./.github/actions/build-php-franken
-                with:
-                    dockerfile: php/franken/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/franken:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-franken-testing
-                if: contains(needs.plan.outputs.run_list, ' php-franken-testing ')
-                uses: ./.github/actions/build-php-franken-testing
-                with:
-                    dockerfile: php/franken-testing/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/franken-testing:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-fpm-base
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-base ')
-                uses: ./.github/actions/build-php-base
-                with:
-                    dockerfile: php/base/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm-base:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-fpm
-                if: contains(needs.plan.outputs.run_list, ' php-fpm ')
-                uses: ./.github/actions/build-php
-                with:
-                    dockerfile: php/fpm/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-fpm-testing
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-testing ')
-                uses: ./.github/actions/build-php-testing
-                with:
-                    dockerfile: php/testing/Dockerfile
-                    tags: |
-                        ${{ env.PHP_OWNER }}/fpm-testing:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
-
-            -   name: build php-fpm-socket
-                if: contains(needs.plan.outputs.run_list, ' php-fpm-socket ')
-                uses: ./.github/actions/build-php-sockets
-                with:
-                    dockerfile1: php/socket/Dockerfile
-                    tags1: |
-                        ${{ env.PHP_OWNER }}/fpm-socket:latest
-                    dockerfile2: php/testing-socket/Dockerfile
-                    tags2: |
-                        ${{ env.PHP_OWNER }}/fpm-testing-socket:latest
-                    no_cache: ${{ github.event.inputs.no_cache }}
 
     cleanup:
         needs:

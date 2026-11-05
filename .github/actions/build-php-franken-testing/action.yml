@@ -18,7 +18,7 @@ inputs:
     php_version:
         description: "PHP version for build"
         required: false
-        default: "8.5.0-dev"
+        default: "8.6.0-dev"
 runs:
     using: "composite"
     steps:
@@ -37,5 +37,5 @@ runs:
                 tags: ${{ inputs.tags }}
                 no_cache: ${{ inputs.no_cache }}
                 build-args: |
-                    BASE_TAG=${{ inputs.php_branch == 'master' && ':master' || ':latest' }}
+                    BASE_TAG=:master
                     PHP_VERSION=${{ inputs.php_version }}
