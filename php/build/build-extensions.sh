@@ -14,6 +14,8 @@ if command -v ccache >/dev/null 2>&1 && ccache --version >/dev/null 2>&1; then
     export PATH="/usr/lib/ccache:$PATH" CCACHE_COMPILERCHECK=content
     ccache -M 20G
     CCACHE_AVAILABLE=1
+else
+    echo "NOTE: ccache unavailable; building without compiler cache (no ccache -s will appear)" >&2
 fi
 
 if [[ ! -f /tmp/extensions.json ]]; then

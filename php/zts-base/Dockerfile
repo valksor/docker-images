@@ -125,7 +125,7 @@ RUN     --mount=type=cache,id=ccache,target=/root/.ccache \
 &&      ldconfig \
 &&      bash /tmp/runtime-deps.sh /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget \
 # ccache is build-only here: the final stage copies /usr/bin as raw files without their
-# /usr/lib libraries, and the orphaned binary breaks downstream `command -v ccache` probes
+# /usr/lib libraries, and the orphaned binary fools downstream name-only probes
 &&      apt-get purge -y ccache \
 &&      mkdir --parents /var/lib/php/sessions \
 &&      chown -R valksor:valksor /var/lib/php/sessions \
@@ -188,6 +188,11 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/local/etc/ /usr/local/etc/
 COPY --from=builder /usr/local/share/ /usr/local/share/
+# license texts for the binaries the raw /usr/bin copy below ships (git, wget, gdb, ...):
+# /usr/share/doc/*/copyright plus the canonical /usr/share/common-licenses they reference;
+# without them the image conveys GPL binaries without their licenses
+COPY --from=builder /usr/share/doc/ /usr/share/doc/
+COPY --from=builder /usr/share/common-licenses/ /usr/share/common-licenses/
 COPY --from=builder /var/www/ /var/www/
 COPY --from=builder /home/valksor/ /home/valksor/
 COPY --from=builder /etc/ld.so.cache /etc/
@@ -245,11 +250,13 @@ RUN     \
         set -eux \
 &&      if env | grep -q '^CCACHE'; then echo 'ccache env leaked into image' >&2; exit 1; fi \
 &&      [ "${PATH#/usr/lib/ccache:}" = "$PATH" ] || { echo 'ccache PATH prefix leaked into image' >&2; exit 1; } \
+&&      if command -v ccache >/dev/null 2>&1; then echo 'ccache binary present in shipped image' >&2; exit 1; fi \
 &&      chmod 644 /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
 &&      git config --global --add safe.directory "*" \
 &&      chown -R valksor:valksor /home/valksor \
 &&      chown valksor:valksor /var/www/preload.php \
 &&      { [ -s /usr/local/share/doc/php/LICENSE ] || { echo 'php LICENSE is missing or empty' >&2; exit 1; }; } \
+&&      for l in git wget; do { [ -s "/usr/share/doc/$l/copyright" ] || { echo "$l copyright file is missing or empty" >&2; exit 1; }; } done \
 &&      out="$(php -d display_errors=stderr -d display_startup_errors=1 -d log_errors=0 -m 2>&1)" \
 &&      if grep -qE 'PHP Startup|Unable to load|Fatal|already loaded' <<<"$out"; then echo "$out" >&2; exit 1; fi \
 &&      out="$(ldd /usr/local/bin/php /usr/local/lib/libphp.so /usr/bin/cgi-fcgi /usr/bin/jq /usr/bin/git /usr/bin/wget "$(php-config --extension-dir)"/*.so)" \
