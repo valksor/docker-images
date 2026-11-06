@@ -18,7 +18,7 @@ inputs:
     php_version:
         description: "PHP version for build"
         required: false
-        default: "8.6.0-dev"
+        default: "8.7.0-dev"
     base_image:
         description: "Base image to pull (zts-base)"
         required: false

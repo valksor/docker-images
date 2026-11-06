@@ -386,7 +386,7 @@ jobs:
                         ${{ env.PHP_OWNER }}/zts-base:master
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
-                    php_version: "8.6.0-dev"
+                    php_version: "8.7.0-dev"
 
             -   name: build php-zts-master
                 if: contains(needs.plan.outputs.run_list, ' php-zts-master ')
@@ -397,7 +397,7 @@ jobs:
                         ${{ env.PHP_OWNER }}/zts:master
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
-                    php_version: "8.6.0-dev"
+                    php_version: "8.7.0-dev"
                     base_image: "zts-base"
 
             -   name: build php-zts-testing-master
@@ -409,7 +409,7 @@ jobs:
                         ${{ env.PHP_OWNER }}/zts-testing:master
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
-                    php_version: "8.6.0-dev"
+                    php_version: "8.7.0-dev"
                     base_image: "zts"
 
             -   name: build php-franken-master
@@ -421,7 +421,7 @@ jobs:
                         ${{ env.PHP_OWNER }}/franken:master
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
-                    php_version: "8.6.0-dev"
+                    php_version: "8.7.0-dev"
 
             -   name: build php-franken-testing-master
                 if: contains(needs.plan.outputs.run_list, ' php-franken-testing-master ')
@@ -432,7 +432,7 @@ jobs:
                         ${{ env.PHP_OWNER }}/franken-testing:master
                     no_cache: ${{ github.event.inputs.no_cache }}
                     php_branch: master
-                    php_version: "8.6.0-dev"
+                    php_version: "8.7.0-dev"
 
     cleanup:
         needs:

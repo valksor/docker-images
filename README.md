@@ -35,14 +35,14 @@ docker run -d --name frankenphp -p 80:80 ghcr.io/valksor/php/franken:master
 |-------|--------------|----------|
 | **Debian** | Optimized base, no docs, custom user | Foundation for all images |
 
-### PHP-ZTS Variants (8.6.0-dev, `:master` tag)
+### PHP-ZTS Variants (8.7.0-dev, `:master` tag)
 | Image | Key Features | Use Case |
 |-------|--------------|----------|
 | **php/zts-base** | Thread-safe PHP base, embed SAPI | Base for ZTS variants |
 | **php/zts** | ZTS with extensions (GD, Redis, gRPC, Protobuf) | Multi-threaded PHP apps |
 | **php/zts-testing** | ZTS + Xdebug, PCov, Composer | Thread-safe development |
 
-### FrankenPHP Variants (8.6.0-dev, `:master` tag)
+### FrankenPHP Variants (8.7.0-dev, `:master` tag)
 | Image | Key Features | Use Case |
 |-------|--------------|----------|
 | **php/franken** | Go-based PHP server, HTTP/3, Mercure, Vulcain | Modern application server |
@@ -84,7 +84,7 @@ PHP image notes:
 
 - `php -a` and the `readline` functions use libedit, like the official PHP images. Configure line editing in `~/.editrc` (not `~/.inputrc`); some `readline_*` functions behave differently under libedit, see the [readline documentation](https://www.php.net/manual/en/book.readline.php).
 - `/usr/local/bin` is writable only by root (tools remain executable by everyone). Install your own tools as root in a derived image, or into a directory you own and add to `PATH`.
-- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.). The image license label (`BSD-3-Clause AND MIT`) covers this repo's files, including those vendored MIT files, not the bundled PHP runtime or other software: the runtime is BSD-3-Clause on the master/8.6 branch, and its license ships in the image at `/usr/local/share/doc/php/LICENSE`; extension licenses ship under `/usr/local/share/doc/php-ext/`. Other bundled software keeps its own license.
+- Licensing: this repo is BSD-3-Clause, except the vendored files under `php/docker` (MIT, Docker, Inc.). The image license label (`BSD-3-Clause AND MIT`) covers this repo's files, including those vendored MIT files, not the bundled PHP runtime or other software: the runtime is BSD-3-Clause on the master/8.7 branch, and its license ships in the image at `/usr/local/share/doc/php/LICENSE`; extension licenses ship under `/usr/local/share/doc/php-ext/`. Other bundled software keeps its own license.
 
 ### PHP-ZTS Variants
 
@@ -316,7 +316,7 @@ Images are published as manifests covering:
 
 ### Tagging Strategy
 - `latest` - Most recent stable version
-- `master` - PHP 8.6.0-dev development branch
+- `master` - PHP 8.7.0-dev development branch
 - `18` - PostgreSQL major version
 
 The PHP-FPM images are removed (migrate to the ZTS or FrankenPHP images); the ZTS/FrankenPHP `:latest` tags are frozen — switch to their `:master` tags.
@@ -327,7 +327,7 @@ The PHP-FPM images are removed (migrate to the ZTS or FrankenPHP images); the ZT
 # Base Images
 docker pull ghcr.io/valksor/debian:latest
 
-# PHP Variants (8.6.0-dev, `:master` tag)
+# PHP Variants (8.7.0-dev, `:master` tag)
 docker pull ghcr.io/valksor/php/zts-base:master
 docker pull ghcr.io/valksor/php/zts:master
 docker pull ghcr.io/valksor/php/zts-testing:master
